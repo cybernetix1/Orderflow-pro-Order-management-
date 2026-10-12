@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "Rep": {
+      "title": "Sales Representative",
+      "description": "A sales rep who brings in orders.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "The rep's full name", "maxLength": 100 },
+        "email": { "type": "string", "description": "The rep's email", "pattern": "^[^@]+@[^@]+\\.[^@]+$" },
+        "color": { "type": "string", "description": "Hex color for chart", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "commissionPerOrder": { "type": "number", "description": "Amount earned per order" },
+        "dailyGoal": { "type": "number", "description": "Daily order count goal", "default": 5 },
+        "role": { "type": "string", "enum": ["admin", "rep"] }
+      },
+      "required": ["name", "email", "color", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An order brought in by a rep.",
+      "type": "object",
+      "properties": {
+        "repId": { "type": "string", "description": "ID of the rep" },
+        "customerName": { "type": "string", "description": "Name of the customer", "maxLength": 200 },
+        "amount": { "type": "number", "description": "Order total amount" },
+        "status": { "type": "string", "enum": ["pending", "sent_to_processor", "completed"], "description": "Order lifecycle status" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "sentToProcessorAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["repId", "customerName", "amount", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/reps/{repId}": {
+      "schema": "Rep",
+      "description": "Storage for sales representative profiles."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Storage for all orders."
+    }
+  }
+}

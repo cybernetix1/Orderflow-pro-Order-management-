@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isEmailVerified() && (
+        request.auth.token.email == 'darrellodishika@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidRep(data) {
+      return data.keys().hasAll(['name', 'email', 'color', 'role']) &&
+             data.keys().hasOnly(['name', 'email', 'color', 'role', 'commissionPerOrder', 'dailyGoal']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.matches('^[^@]+@[^@]+\\.[^@]+$') &&
+             data.color is string && data.color.matches('^#[0-9a-fA-F]{6}$') &&
+             data.role in ['admin', 'rep'] &&
+             (!data.keys().contains('commissionPerOrder') || data.commissionPerOrder is number) &&
+             (!data.keys().contains('dailyGoal') || data.dailyGoal is number);
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['repId', 'customerName', 'amount', 'status', 'createdAt']) &&
+             data.keys().hasOnly(['repId', 'customerName', 'amount', 'status', 'createdAt', 'updatedAt', 'sentToProcessorAt']) &&
+             data.repId is string &&
+             data.customerName is string && data.customerName.size() <= 200 &&
+             data.amount is number &&
+             data.status in ['pending', 'sent_to_processor', 'completed'] &&
+             data.createdAt == request.time &&
+             (!data.keys().contains('updatedAt') || data.updatedAt == request.time);
+    }
+
+    // --- Collection Rules ---
+
+    match /reps/{repId} {
+      allow read: if isEmailVerified();
+      allow create: if isAdmin() && isValidId(repId) && isValidRep(incoming());
+      allow update: if isAdmin() && isValidId(repId) && isValidRep(incoming());
+      allow delete: if isAdmin() && isValidId(repId);
+    }
+
+    match /orders/{orderId} {
+      allow read: if isEmailVerified();
+      allow create: if isEmailVerified() && isValidId(orderId) && isValidOrder(incoming()) && 
+                    exists(/databases/$(database)/documents/reps/$(incoming().repId));
+      
+      allow update: if isEmailVerified() && isValidId(orderId) && isValidOrder(incoming()) && (
+        isAdmin() || (
+          // Reps can only update their own orders if they are pending
+          existing().repId == request.auth.uid && existing().status == 'pending' &&
+          incoming().repId == existing().repId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['customerName', 'amount', 'status', 'updatedAt'])
+        )
+      );
+      
+      allow delete: if isAdmin() && isValidId(orderId);
+    }
+    
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+    }
+  }
+}
