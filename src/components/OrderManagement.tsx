@@ -1,25 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { db } from '../lib/firebase';
-import { collection, addDoc, serverTimestamp, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
-import { format, isSameDay } from 'date-fns';
-import { handleFirestoreError, OperationType } from '../lib/error-handler';
-
-interface Order {
-  id: string;
-  repId: string;
-  customerName: string;
-  amount: number;
-  status: 'pending' | 'sent_to_processor' | 'completed';
-  createdAt: any;
-}
-
-interface Rep {
-  id: string;
-  name: string;
-  color: string;
-}
+import { format, isSameDay, parseISO } from 'date-fns';
+import { useData, Order, Rep } from './DataProvider';
 
 interface OrderManagementProps {
   orders: Order[];
@@ -27,6 +10,7 @@ interface OrderManagementProps {
 }
 
 export default function OrderManagement({ orders, reps }: OrderManagementProps) {
+  const { addOrder, updateOrder, deleteOrder } = useData();
   const [isAdding, setIsAdding] = useState(false);
   const [newOrder, setNewOrder] = useState({ repId: '', customerName: '', amount: '' });
 
@@ -34,51 +18,33 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     const today = new Date();
     return orders.filter(o => {
       if (!o.createdAt) return false;
-      return isSameDay(o.createdAt.toDate(), today);
+      return isSameDay(parseISO(o.createdAt), today);
     });
   }, [orders]);
 
   const sentToday = ordersToday.filter(o => o.status !== 'pending').length;
 
-  const handleAddOrder = async (e: React.FormEvent) => {
+  const handleAddOrder = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOrder.repId || !newOrder.customerName || !newOrder.amount) return;
 
-    try {
-      await addDoc(collection(db, 'orders'), {
-        repId: newOrder.repId,
-        customerName: newOrder.customerName,
-        amount: parseFloat(newOrder.amount),
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      setIsAdding(false);
-      setNewOrder({ repId: '', customerName: '', amount: '' });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'orders');
-    }
+    addOrder({
+      repId: newOrder.repId,
+      customerName: newOrder.customerName,
+      amount: parseFloat(newOrder.amount),
+      status: 'pending',
+    });
+    setIsAdding(false);
+    setNewOrder({ repId: '', customerName: '', amount: '' });
   };
 
-  const updateStatus = async (orderId: string, status: Order['status']) => {
-    try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        status,
-        updatedAt: serverTimestamp(),
-        ...(status === 'sent_to_processor' ? { sentToProcessorAt: serverTimestamp() } : {})
-      });
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
-    }
+  const updateStatus = (orderId: string, status: Order['status']) => {
+    updateOrder(orderId, { status });
   };
 
-  const deleteOrder = async (orderId: string) => {
+  const handleDelete = (orderId: string) => {
     if (!confirm('Are you sure you want to delete this order?')) return;
-    try {
-      await deleteDoc(doc(db, 'orders', orderId));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
-    }
+    deleteOrder(orderId);
   };
 
   return (
@@ -194,12 +160,12 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {orders.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis()).map(order => {
+              {orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(order => {
                 const rep = reps.find(r => r.id === order.repId);
                 return (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {order.createdAt ? format(order.createdAt.toDate(), 'MMM d, h:mm a') : '...'}
+                      {format(parseISO(order.createdAt), 'MMM d, h:mm a')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{order.customerName}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -241,7 +207,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                         </button>
                       )}
                       <button
-                        onClick={() => deleteOrder(order.id)}
+                        onClick={() => handleDelete(order.id)}
                         className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                         title="Delete Order"
                       >

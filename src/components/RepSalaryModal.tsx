@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Calculator, Calendar, TrendingUp, ChevronRight } from 'lucide-react';
+import { X, Calculator, TrendingUp } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { 
   format, 
@@ -12,14 +12,15 @@ import {
   eachDayOfInterval,
   subDays,
   startOfDay,
-  endOfDay
+  endOfDay,
+  parseISO
 } from 'date-fns';
 
 interface Order {
   id: string;
   repId: string;
   amount: number;
-  createdAt: any; // Firestore Timestamp
+  createdAt: string;
   status: string;
 }
 
@@ -65,8 +66,8 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
 
     if (range) {
       filtered = repOrders.filter(o => {
-        const date = o.createdAt?.toDate();
-        return date && isWithinInterval(date, range!);
+        const date = parseISO(o.createdAt);
+        return isWithinInterval(date, range!);
       });
     }
 
@@ -74,18 +75,28 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
     const commission = rep.commissionPerOrder || 50;
     const totalSalary = count * commission;
 
-    // Daily breakdown for the selected range (or last 7 days if 'all')
-    const breakdownRange = range || { start: subDays(now, 6), end: now };
-    const days = eachDayOfInterval(breakdownRange);
+    // Daily breakdown
+    const breakdownRange = range || { 
+      start: repOrders.length > 0 ? parseISO(repOrders[0].createdAt) : subDays(now, 6), 
+      end: now 
+    };
     
+    // Safety check for invalid dates or extremely large ranges
+    let days: Date[] = [];
+    try {
+      days = eachDayOfInterval(breakdownRange);
+    } catch (e) {
+      days = [now];
+    }
+
     const dailyBreakdown = days.map(day => {
-      const dayOrders = repOrders.filter(o => o.createdAt && isSameDay(o.createdAt.toDate(), day));
+      const dayOrders = repOrders.filter(o => isSameDay(parseISO(o.createdAt), day));
       return {
         date: day,
         count: dayOrders.length,
         goal: rep.dailyGoal || 5
       };
-    }).reverse();
+    }).reverse().slice(0, 31); // Limit to 31 days for UI safety
 
     return { count, commission, totalSalary, filtered, dailyBreakdown };
   }, [repOrders, period, customRange, rep.commissionPerOrder, rep.dailyGoal]);

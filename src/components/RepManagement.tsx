@@ -1,73 +1,47 @@
 import React, { useState } from 'react';
-import { db } from '../lib/firebase';
-import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import { Plus, UserPlus, Trash2, Edit2, Check, X } from 'lucide-react';
-import { handleFirestoreError, OperationType } from '../lib/error-handler';
-
-interface Rep {
-  id: string;
-  name: string;
-  email: string;
-  color: string;
-  commissionPerOrder: number;
-  dailyGoal?: number;
-}
-
-interface RepManagementProps {
-  reps: Rep[];
-}
+import { UserPlus, Trash2, Edit2 } from 'lucide-react';
+import { useData, Rep } from './DataProvider';
 
 const PRESET_COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', 
   '#ec4899', '#06b6d4', '#f97316', '#6366f1', '#14b8a6'
 ];
 
+interface RepManagementProps {
+  reps: Rep[];
+}
+
 export default function RepManagement({ reps }: RepManagementProps) {
+  const { addRep, updateRep, deleteRep } = useData();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', color: PRESET_COLORS[0], commission: '50', dailyGoal: '5' });
 
-  const handleAdd = async (e: React.FormEvent) => {
+  const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await addDoc(collection(db, 'reps'), {
-        name: formData.name,
-        email: formData.email,
-        color: formData.color,
-        role: 'rep',
-        commissionPerOrder: parseFloat(formData.commission),
-        dailyGoal: parseInt(formData.dailyGoal)
-      });
-      setIsAdding(false);
-      resetForm();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'reps');
-    }
+    addRep({
+      name: formData.name,
+      email: formData.email,
+      color: formData.color,
+      commissionPerOrder: parseFloat(formData.commission),
+      dailyGoal: parseInt(formData.dailyGoal)
+    });
+    setIsAdding(false);
+    resetForm();
   };
 
-  const handleUpdate = async (id: string) => {
-    try {
-      await updateDoc(doc(db, 'reps', id), {
-        name: formData.name,
-        email: formData.email,
-        color: formData.color,
-        commissionPerOrder: parseFloat(formData.commission),
-        dailyGoal: parseInt(formData.dailyGoal)
-      });
-      setEditingId(null);
-      resetForm();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `reps/${id}`);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure? This will not delete their orders but they will show as "Unknown".')) return;
-    try {
-      await deleteDoc(doc(db, 'reps', id));
-    } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `reps/${id}`);
-    }
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    updateRep(editingId, {
+      name: formData.name,
+      email: formData.email,
+      color: formData.color,
+      commissionPerOrder: parseFloat(formData.commission),
+      dailyGoal: parseInt(formData.dailyGoal)
+    });
+    setEditingId(null);
+    resetForm();
   };
 
   const startEdit = (rep: Rep) => {
@@ -99,7 +73,7 @@ export default function RepManagement({ reps }: RepManagementProps) {
       </div>
 
       {(isAdding || editingId) && (
-        <form onSubmit={isAdding ? handleAdd : (e) => { e.preventDefault(); handleUpdate(editingId!); }} 
+        <form onSubmit={isAdding ? handleAdd : handleUpdate} 
               className="bg-white p-6 rounded-xl border border-blue-100 shadow-sm animate-in slide-in-from-top duration-200 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1">
@@ -146,6 +120,8 @@ export default function RepManagement({ reps }: RepManagementProps) {
                 onChange={e => setFormData({ ...formData, dailyGoal: e.target.value })}
               />
             </div>
+          </div>
+          <div className="flex justify-between items-center pt-2">
             <div className="space-y-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Chart Color</label>
               <div className="flex flex-wrap gap-2 pt-1">
@@ -162,21 +138,21 @@ export default function RepManagement({ reps }: RepManagementProps) {
                 ))}
               </div>
             </div>
-          </div>
-          <div className="flex justify-end space-x-3 pt-2">
-            <button
-              type="button"
-              onClick={() => { setIsAdding(false); setEditingId(null); resetForm(); }}
-              className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              {isAdding ? 'Create Representative' : 'Save Changes'}
-            </button>
+            <div className="flex space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => { setIsAdding(false); setEditingId(null); resetForm(); }}
+                className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                {isAdding ? 'Create Representative' : 'Save Changes'}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -201,7 +177,7 @@ export default function RepManagement({ reps }: RepManagementProps) {
                 <button onClick={() => startEdit(rep)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50">
                   <Edit2 size={16} />
                 </button>
-                <button onClick={() => handleDelete(rep.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50">
+                <button onClick={() => deleteRep(rep.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50">
                   <Trash2 size={16} />
                 </button>
               </div>

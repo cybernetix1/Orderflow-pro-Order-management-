@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { useAuth } from './AuthProvider';
 import { formatCurrency } from '../lib/utils';
+import { parseISO } from 'date-fns';
 
 interface Order {
   id: string;
@@ -9,6 +9,7 @@ interface Order {
   amount: number;
   status: string;
   customerName: string;
+  createdAt: string;
 }
 
 interface Rep {
@@ -33,16 +34,9 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
       return acc;
     }, {} as Record<string, number>);
 
-    const todayCounts = orders.reduce((acc, order) => {
-      // Need to handle Firestore Timestamp if provided, but interface says Date? 
-      // Actually interface doesn't show createdAt. Let's assume it's in orders but missing from interface.
-      // I'll add it to the interface.
-      return acc;
-    }, {} as Record<string, number>);
-
     return reps.map(rep => {
-      const todayOrders = (orders as any[]).filter(o => {
-        const date = o.createdAt?.toDate?.() || new Date(o.createdAt);
+      const todayOrders = orders.filter(o => {
+        const date = parseISO(o.createdAt);
         return o.repId === rep.id && date.toDateString() === today.toDateString();
       });
 
