@@ -16,7 +16,7 @@ export default function RepManagement({ reps }: RepManagementProps) {
   const { addRep, updateRep, deleteRep, theme } = useData();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '', color: PRESET_COLORS[0], commission: '1000' });
+  const [formData, setFormData] = useState({ name: '', email: '', color: PRESET_COLORS[0] });
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,6 @@ export default function RepManagement({ reps }: RepManagementProps) {
       name: formData.name,
       email: formData.email,
       color: formData.color,
-      commissionPerOrder: parseFloat(formData.commission),
     });
     setIsAdding(false);
     resetForm();
@@ -37,7 +36,6 @@ export default function RepManagement({ reps }: RepManagementProps) {
       name: formData.name,
       email: formData.email,
       color: formData.color,
-      commissionPerOrder: parseFloat(formData.commission),
     });
     setEditingId(null);
     resetForm();
@@ -49,12 +47,11 @@ export default function RepManagement({ reps }: RepManagementProps) {
       name: rep.name,
       email: rep.email,
       color: rep.color,
-      commission: (rep.commissionPerOrder ?? 1000).toString(),
     });
   };
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', color: PRESET_COLORS[0], commission: '1000' });
+    setFormData({ name: '', email: '', color: PRESET_COLORS[0] });
   };
 
   return (
@@ -96,17 +93,6 @@ export default function RepManagement({ reps }: RepManagementProps) {
                 className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium dark:text-white"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Commission (₦)</label>
-              <input
-                required
-                type="number"
-                placeholder="1000"
-                className="w-full p-3 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium dark:text-white"
-                value={formData.commission}
-                onChange={e => setFormData({ ...formData, commission: e.target.value })}
               />
             </div>
           </div>
@@ -174,7 +160,7 @@ export default function RepManagement({ reps }: RepManagementProps) {
             </div>
             <div className="mt-8 pt-6 border-t border-gray-50 dark:border-slate-800 flex items-center justify-between">
               <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Commission</span>
-              <span className="font-black text-gray-900 dark:text-white text-lg">₦{(rep.commissionPerOrder ?? 1000).toLocaleString()} / order</span>
+              <span className="font-black text-gray-900 dark:text-white text-lg">Automated Calculation</span>
             </div>
           </div>
         ))}

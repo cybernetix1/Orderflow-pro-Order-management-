@@ -62,16 +62,22 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
       } else if (period === 'month') {
         range = { start: startOfMonth(now), end: endOfMonth(now) };
       } else if (period === 'custom') {
-        range = { 
-          start: startOfDay(new Date(customRange.start)), 
-          end: endOfDay(new Date(customRange.end)) 
-        };
+        const s = new Date(customRange.start);
+        const e = new Date(customRange.end);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          range = { 
+            start: startOfDay(s), 
+            end: endOfDay(e) 
+          };
+        }
       }
 
       if (range) {
         filtered = repOrders.filter(o => {
-          const date = parseISO(o.createdAt);
-          return isWithinInterval(date, range!);
+          try {
+            const date = parseISO(o.createdAt);
+            return isWithinInterval(date, range!);
+          } catch(e) { return false; }
         });
       }
     } catch (e) {
@@ -86,28 +92,43 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
     // Daily breakdown
     let dailyBreakdown: any[] = [];
     try {
-      // Use oldest order as start for 'Lifetime' view, otherwise use the selected range
-      const breakdownRange = range || { 
-        start: repOrders.length > 0 ? parseISO(repOrders[0].createdAt) : subDays(now, 6), 
-        end: now 
-      };
+      // Limit history to last 60 days to prevent performance issues
+      const maxHistory = subDays(now, 60);
+      let startDate = range?.start;
       
-      // Ensure start is not after end to prevent eachDayOfInterval from throwing
-      const safeStart = breakdownRange.start > breakdownRange.end ? breakdownRange.end : breakdownRange.start;
+      if (!startDate) {
+        if (repOrders.length > 0) {
+          try {
+            const firstOrderDate = parseISO(repOrders[0].createdAt);
+            startDate = firstOrderDate < maxHistory ? maxHistory : firstOrderDate;
+          } catch(e) {
+            startDate = subDays(now, 6);
+          }
+        } else {
+          startDate = subDays(now, 6);
+        }
+      }
+
+      const endDate = range?.end || now;
       
-      const days = eachDayOfInterval({ start: startOfDay(safeStart), end: endOfDay(breakdownRange.end) });
-      dailyBreakdown = days.map(day => {
-        const dayOrders = repOrders.filter(o => {
-           try {
-             return isSameDay(parseISO(o.createdAt), day);
-           } catch(e) { return false; }
-        });
-        return {
-          date: day,
-          count: dayOrders.length,
-          commission: dayOrders.reduce((sum, o) => sum + (o.commission || 0), 0)
-        };
-      }).reverse().slice(0, 31);
+      // Ensure dates are valid
+      if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+        const safeStart = startDate > endDate ? endDate : startDate;
+        const days = eachDayOfInterval({ start: startOfDay(safeStart), end: endOfDay(endDate) });
+        
+        dailyBreakdown = days.map(day => {
+          const dayOrders = repOrders.filter(o => {
+             try {
+               return isSameDay(parseISO(o.createdAt), day);
+             } catch(e) { return false; }
+          });
+          return {
+            date: day,
+            count: dayOrders.length,
+            commission: dayOrders.reduce((sum, o) => sum + (o.commission || 0), 0)
+          };
+        }).reverse().slice(0, 31);
+      }
     } catch (e) {
       console.error("Error generating daily breakdown", e);
       dailyBreakdown = [];

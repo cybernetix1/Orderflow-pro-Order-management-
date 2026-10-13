@@ -5,19 +5,18 @@ export interface Rep {
   name: string;
   email: string;
   color: string;
-  commissionPerOrder?: number; // Base commission if applicable
 }
 
 export type FrostingType = 'Buttercream' | 'Whipped Cream';
 export type DeliveryType = 'Room Delivery' | 'Pickup' | 'Delivery Pickup' | 'Wrong Delivery';
 export type PaymentStatus = 'Pending' | 'Partial' | 'Paid';
 export type OrderStatus = 'Pending' | 'Processing' | 'Ready' | 'Out for Delivery' | 'Completed';
-export type OrderCategory = 'Cake' | 'Small Chops';
 
 export interface Order {
   id: string;
   repId: string;
-  category: OrderCategory;
+  includeCake: boolean;
+  includeSmallChops: boolean;
   customerName: string;
   customerPhone?: string;
   // Cake specific
@@ -78,7 +77,7 @@ const STORAGE_KEY_ORDERS = 'cakeflow_orders_v2';
 const STORAGE_KEY_REMINDERS = 'cakeflow_reminders_v2';
 const STORAGE_KEY_THEME = 'cakeflow_theme_v2';
 
-import { SMALL_CHOPS_PRICES } from '../lib/constants';
+import { SMALL_CHOPS_PRICES, DELIVERY_COMMISSIONS } from '../lib/constants';
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [reps, setReps] = useState<Rep[]>(() => {
@@ -123,23 +122,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const calculateCommission = (order: Partial<Order>) => {
     let commission = 0;
     
-    // Base product commission
-    if (order.category === 'Cake') {
-      commission = 1000;
-    } else if (order.category === 'Small Chops' && order.packageType) {
-      commission = SMALL_CHOPS_PRICES[order.packageType]?.commission || 0;
+    // 1. Cake Commission
+    if (order.includeCake) {
+      commission += 1000;
     }
 
-    // Delivery type adjustments (as specified)
-    // "Pickup or delivery pickup: ₦500" - Usually meant as additional or specific?
-    // User says: "Pickup or delivery pickup: ₦500 per order", "Wrong delivery: ₦750 per order"
-    // I'll assume these override the base if selected, or are added. 
-    // Given the phrasing "Cake order: 1000", it sounds like these are categories.
-    if (order.deliveryType === 'Pickup' || order.deliveryType === 'Delivery Pickup') {
-      commission = 500;
-    } else if (order.deliveryType === 'Wrong Delivery') {
-      commission = 750;
+    // 2. Small Chops Commission
+    if (order.includeSmallChops && order.packageType) {
+      commission += SMALL_CHOPS_PRICES[order.packageType]?.commission || 0;
     }
+
+    // 3. Delivery Commission
+    const deliveryCommission = DELIVERY_COMMISSIONS[order.deliveryType || 'Pickup'] || 0;
+    commission += deliveryCommission;
 
     return commission;
   };

@@ -19,11 +19,11 @@
   }
 
   .pink {
-    --primary: 190 24 93;
+    --primary: 157 23 77; /* Deeper, more sophisticated pink (Pink 800) */
     --primary-foreground: 255 255 255;
-    --background: 255 228 230;
-    --card: 255 241 242;
-    --border: 251 164 177;
+    --background: 255 241 242; /* Soft light pink (Rose 50) */
+    --card: 255 255 255; /* White cards for better contrast */
+    --border: 254 205 211; /* Muted border (Rose 200) */
   }
 }
 

@@ -51,13 +51,19 @@ export const DELIVERY_TYPES = ['Room Delivery', 'Pickup', 'Delivery Pickup', 'Wr
 export const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'] as const;
 export const ORDER_STATUSES = ['Pending', 'Processing', 'Ready', 'Out for Delivery', 'Completed'] as const;
 export const CAKE_FLAVORS = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Carrot', 'Coconut', 'Marble'];
-export const ORDER_CATEGORIES = ['Cake', 'Small Chops'] as const;
 
 export const DELIVERY_COSTS: Record<string, number> = {
   'Pickup': 1000,
   'Room Delivery': 1500,
   'Delivery Pickup': 1000,
   'Wrong Delivery': 1500,
+};
+
+export const DELIVERY_COMMISSIONS: Record<string, number> = {
+  'Pickup': 500,
+  'Room Delivery': 750,
+  'Delivery Pickup': 500,
+  'Wrong Delivery': 750,
 };
 
 export const ENCOURAGING_MESSAGES = [
