@@ -26,12 +26,14 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     // Cake
     cakeSize: 7,
     cakeLayers: 1,
+    cakeQuantity: 1,
     frostingType: 'Buttercream' as FrostingType,
     flavors: [] as string[],
     customization: '',
     inspirationImage: '',
     // Small Chops
     packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
+    smallChopsQuantity: 1,
     
     deliveryType: 'Pickup' as DeliveryType,
     deliveryDate: format(new Date(), 'yyyy-MM-dd'),
@@ -43,17 +45,17 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   const calculatedPrice = useMemo(() => {
     let cakePrice = 0;
     if (formData.includeCake) {
-      cakePrice = CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0;
+      cakePrice = (CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0) * formData.cakeQuantity;
     }
 
     let smallChopsPrice = 0;
     if (formData.includeSmallChops) {
-      smallChopsPrice = SMALL_CHOPS_PRICES[formData.packageType]?.price || 0;
+      smallChopsPrice = (SMALL_CHOPS_PRICES[formData.packageType]?.price || 0) * formData.smallChopsQuantity;
     }
     
     const delivery = DELIVERY_COSTS[formData.deliveryType] || 0;
     return cakePrice + smallChopsPrice + delivery;
-  }, [formData.includeCake, formData.includeSmallChops, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.packageType, formData.deliveryType]);
+  }, [formData.includeCake, formData.includeSmallChops, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.cakeQuantity, formData.packageType, formData.smallChopsQuantity, formData.deliveryType]);
 
   const ordersToday = useMemo(() => {
     const today = new Date();
@@ -88,11 +90,13 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
       customerPhone: '',
       cakeSize: 7,
       cakeLayers: 1,
+      cakeQuantity: 1,
       frostingType: 'Buttercream',
       flavors: [],
       customization: '',
       inspirationImage: '',
       packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
+      smallChopsQuantity: 1,
       deliveryType: 'Pickup',
       deliveryDate: format(new Date(), 'yyyy-MM-dd'),
       paymentStatus: 'Pending',
@@ -286,6 +290,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                         {FROSTING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Qty</label>
+                      <select
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold dark:text-white"
+                        value={formData.cakeQuantity}
+                        onChange={e => setFormData({ ...formData, cakeQuantity: parseInt(e.target.value) })}
+                      >
+                        {[1, 2, 3, 4, 5, 10, 15, 20].map(q => <option key={q} value={q}>{q}</option>)}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -355,28 +369,40 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     <Package size={18} />
                     <span>Small Chops Configurator</span>
                   </h3>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Package Selection</label>
-                    <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                      {Object.keys(SMALL_CHOPS_PRICES).map(pkg => (
-                        <button
-                          key={pkg}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, packageType: pkg })}
-                          className={cn(
-                            "w-full p-4 flex items-center justify-between rounded-2xl border transition-all text-left",
-                            formData.packageType === pkg 
-                              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200" 
-                              : "bg-white dark:bg-slate-800 border-subtle hover:border-gray-200"
-                          )}
-                        >
-                          <div>
-                            <p className="font-black text-gray-900 dark:text-white text-sm">{pkg}</p>
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">₦{SMALL_CHOPS_PRICES[pkg].price.toLocaleString()}</p>
-                          </div>
-                          {formData.packageType === pkg && <CheckCircle size={20} className="text-blue-500" />}
-                        </button>
-                      ))}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Package Selection</label>
+                      <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {Object.keys(SMALL_CHOPS_PRICES).map(pkg => (
+                          <button
+                            key={pkg}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, packageType: pkg })}
+                            className={cn(
+                              "w-full p-4 flex items-center justify-between rounded-2xl border transition-all text-left",
+                              formData.packageType === pkg 
+                                ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200" 
+                                : "bg-white dark:bg-slate-800 border-subtle hover:border-gray-200"
+                            )}
+                          >
+                            <div>
+                              <p className="font-black text-gray-900 dark:text-white text-sm">{pkg}</p>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">₦{SMALL_CHOPS_PRICES[pkg].price.toLocaleString()}</p>
+                            </div>
+                            {formData.packageType === pkg && <CheckCircle size={20} className="text-blue-500" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="w-full sm:w-24 space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Qty</label>
+                      <select
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
+                        value={formData.smallChopsQuantity}
+                        onChange={e => setFormData({ ...formData, smallChopsQuantity: parseInt(e.target.value) })}
+                      >
+                        {[1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50].map(q => <option key={q} value={q}>{q}</option>)}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -525,9 +551,9 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl min-w-[120px]">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Configuration</p>
                         <p className="text-xs font-black text-main">
-                          {order.includeCake && `${order.cakeSize}" ${order.flavors.join(', ') || 'No Flavor'}`}
+                          {order.includeCake && `${order.cakeQuantity > 1 ? order.cakeQuantity + 'x ' : ''}${order.cakeSize}" ${order.flavors.join(', ') || 'No Flavor'}`}
                           {order.includeCake && order.includeSmallChops && <span className="block border-t border-subtle my-1" />}
-                          {order.includeSmallChops && order.packageType}
+                          {order.includeSmallChops && `${order.smallChopsQuantity > 1 ? order.smallChopsQuantity + 'x ' : ''}${order.packageType}`}
                         </p>
                       </div>
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">

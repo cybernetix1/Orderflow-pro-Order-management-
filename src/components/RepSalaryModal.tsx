@@ -26,7 +26,9 @@ interface Order {
   createdAt: string;
   orderStatus: string;
   includeCake?: boolean;
+  cakeQuantity?: number;
   includeSmallChops?: boolean;
+  smallChopsQuantity?: number;
   customerName: string;
 }
 
@@ -248,8 +250,18 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                         <div className="flex items-center space-x-2">
                           <p className="text-sm font-black text-gray-900 dark:text-white">{order.customerName}</p>
                           <div className="flex space-x-1">
-                            {order.includeCake && <div className="w-2 h-2 rounded-full bg-blue-500" title="Cake" />}
-                            {order.includeSmallChops && <div className="w-2 h-2 rounded-full bg-orange-500" title="Small Chops" />}
+                            {order.includeCake && (
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" title="Cake" />
+                                {order.cakeQuantity && order.cakeQuantity > 1 && <span className="text-[8px] font-black text-blue-600">{order.cakeQuantity}x</span>}
+                              </div>
+                            )}
+                            {order.includeSmallChops && (
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 rounded-full bg-orange-500" title="Small Chops" />
+                                {order.smallChopsQuantity && order.smallChopsQuantity > 1 && <span className="text-[8px] font-black text-orange-600">{order.smallChopsQuantity}x</span>}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{format(parseISO(order.createdAt), 'MMM dd, p')}</p>

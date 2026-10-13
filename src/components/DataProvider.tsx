@@ -22,12 +22,14 @@ export interface Order {
   // Cake specific
   cakeSize?: number;
   cakeLayers?: number;
+  cakeQuantity: number;
   frostingType?: FrostingType;
   flavors: string[];
   customization?: string;
   inspirationImage?: string; // base64
   // Small Chops specific
   packageType?: string;
+  smallChopsQuantity: number;
   
   amount: number;
   deliveryCost: number;
@@ -124,12 +126,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     
     // 1. Cake Commission
     if (order.includeCake) {
-      commission += 1000;
+      commission += 1000 * (order.cakeQuantity || 1);
     }
 
     // 2. Small Chops Commission
     if (order.includeSmallChops && order.packageType) {
-      commission += SMALL_CHOPS_PRICES[order.packageType]?.commission || 0;
+      const baseCommission = SMALL_CHOPS_PRICES[order.packageType]?.commission || 0;
+      commission += baseCommission * (order.smallChopsQuantity || 1);
     }
 
     // 3. Delivery Commission
