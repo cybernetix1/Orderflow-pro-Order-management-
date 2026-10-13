@@ -35,12 +35,12 @@ export default function BunnyPopups() {
             initial={{ opacity: 0, y: 50, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-white dark:bg-pink-600 p-6 rounded-[32px] shadow-2xl border-4 border-pink-200 dark:border-pink-400 flex items-center space-x-4 max-w-sm w-full"
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-card p-6 rounded-[32px] shadow-2xl border-4 border-subtle flex items-center space-x-4 max-w-sm w-full"
           >
-            <div className="bg-pink-100 p-2 rounded-full">
-              <BowIcon size={24} className="text-pink-500" />
+            <div className="bg-pink-100 dark:bg-pink-900/20 p-2 rounded-full">
+              <BowIcon size={24} className="text-pink-600 dark:text-pink-400" />
             </div>
-            <p className="text-sm font-black text-pink-600 dark:text-white leading-tight">
+            <p className="text-sm font-black text-main leading-tight">
               {message}
             </p>
           </motion.div>

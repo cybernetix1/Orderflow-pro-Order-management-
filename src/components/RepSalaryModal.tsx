@@ -86,14 +86,22 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
     // Daily breakdown
     let dailyBreakdown: any[] = [];
     try {
+      // Use oldest order as start for 'Lifetime' view, otherwise use the selected range
       const breakdownRange = range || { 
-        start: repOrders.length > 0 ? parseISO(repOrders[repOrders.length - 1].createdAt) : subDays(now, 6), 
+        start: repOrders.length > 0 ? parseISO(repOrders[0].createdAt) : subDays(now, 6), 
         end: now 
       };
       
-      const days = eachDayOfInterval(breakdownRange);
+      // Ensure start is not after end to prevent eachDayOfInterval from throwing
+      const safeStart = breakdownRange.start > breakdownRange.end ? breakdownRange.end : breakdownRange.start;
+      
+      const days = eachDayOfInterval({ start: startOfDay(safeStart), end: endOfDay(breakdownRange.end) });
       dailyBreakdown = days.map(day => {
-        const dayOrders = repOrders.filter(o => isSameDay(parseISO(o.createdAt), day));
+        const dayOrders = repOrders.filter(o => {
+           try {
+             return isSameDay(parseISO(o.createdAt), day);
+           } catch(e) { return false; }
+        });
         return {
           date: day,
           count: dayOrders.length,
@@ -101,6 +109,7 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
         };
       }).reverse().slice(0, 31);
     } catch (e) {
+      console.error("Error generating daily breakdown", e);
       dailyBreakdown = [];
     }
 

@@ -24,13 +24,14 @@ export interface Order {
   cakeSize?: number;
   cakeLayers?: number;
   frostingType?: FrostingType;
-  flavor?: string;
+  flavors: string[];
   customization?: string;
   inspirationImage?: string; // base64
   // Small Chops specific
   packageType?: string;
   
   amount: number;
+  deliveryCost: number;
   commission: number;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;

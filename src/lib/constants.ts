@@ -53,6 +53,13 @@ export const ORDER_STATUSES = ['Pending', 'Processing', 'Ready', 'Out for Delive
 export const CAKE_FLAVORS = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Carrot', 'Coconut', 'Marble'];
 export const ORDER_CATEGORIES = ['Cake', 'Small Chops'] as const;
 
+export const DELIVERY_COSTS: Record<string, number> = {
+  'Pickup': 1000,
+  'Room Delivery': 1500,
+  'Delivery Pickup': 1000,
+  'Wrong Delivery': 1500,
+};
+
 export const ENCOURAGING_MESSAGES = [
   "You're doing amazing, Princess! 🎀",
   "Don't give up, your hard work is paying off! ✨",

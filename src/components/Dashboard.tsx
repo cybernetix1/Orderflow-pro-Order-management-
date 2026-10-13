@@ -55,11 +55,11 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
         value: counts[rep.id] || 0,
         todayValue: todayOrders.length,
         totalCommission: repOrders.reduce((sum, o) => sum + (o.commission || 0), 0),
-        color: rep.color,
+        color: rep.color || '#cbd5e1',
         id: rep.id,
         rep: rep
       };
-    }).filter(d => d.value > 0 || reps.length < 10); // Show all if few reps, else only active
+    }).filter(d => d.value > 0 || reps.length < 20); // Show all if up to 20 reps, else only active
   }, [orders, reps]);
 
   const stats = useMemo(() => {

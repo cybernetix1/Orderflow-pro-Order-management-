@@ -3,7 +3,7 @@ import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, C
 import { formatCurrency, cn } from '../lib/utils';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { useData, Order, Rep, FrostingType, DeliveryType, PaymentStatus, OrderStatus, OrderCategory } from './DataProvider';
-import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, CAKE_FLAVORS, ORDER_CATEGORIES, SMALL_CHOPS_PRICES } from '../lib/constants';
+import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, CAKE_FLAVORS, ORDER_CATEGORIES, SMALL_CHOPS_PRICES, DELIVERY_COSTS } from '../lib/constants';
 
 import { BowIcon } from './icons/BowIcon';
 
@@ -26,7 +26,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     cakeSize: 7,
     cakeLayers: 1,
     frostingType: 'Buttercream' as FrostingType,
-    flavor: CAKE_FLAVORS[0],
+    flavors: [] as string[],
     customization: '',
     inspirationImage: '',
     // Small Chops
@@ -40,12 +40,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   });
 
   const calculatedPrice = useMemo(() => {
+    let base = 0;
     if (formData.category === 'Cake') {
-      return CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0;
+      base = CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0;
     } else {
-      return SMALL_CHOPS_PRICES[formData.packageType]?.price || 0;
+      base = SMALL_CHOPS_PRICES[formData.packageType]?.price || 0;
     }
-  }, [formData.category, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.packageType]);
+    
+    const delivery = DELIVERY_COSTS[formData.deliveryType] || 0;
+    return base + delivery;
+  }, [formData.category, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.packageType, formData.deliveryType]);
 
   const ordersToday = useMemo(() => {
     const today = new Date();
@@ -65,6 +69,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     addOrder({
       ...formData,
       amount: calculatedPrice,
+      deliveryCost: DELIVERY_COSTS[formData.deliveryType] || 0,
     } as any);
     setIsAdding(false);
     resetForm();
@@ -79,7 +84,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
       cakeSize: 7,
       cakeLayers: 1,
       frostingType: 'Buttercream',
-      flavor: CAKE_FLAVORS[0],
+      flavors: [],
       customization: '',
       inspirationImage: '',
       packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
@@ -271,23 +276,32 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Flavor Selection</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Flavor Selection (Pick one or more)</label>
                     <div className="flex flex-wrap gap-2">
-                      {CAKE_FLAVORS.map(flavor => (
-                        <button
-                          key={flavor}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, flavor })}
-                          className={cn(
-                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                            formData.flavor === flavor 
-                              ? "bg-orange-500 text-white shadow-lg shadow-orange-100" 
-                              : "bg-gray-100 dark:bg-slate-800 text-gray-400 hover:text-gray-600"
-                          )}
-                        >
-                          {flavor}
-                        </button>
-                      ))}
+                      {CAKE_FLAVORS.map(flavor => {
+                        const isActive = formData.flavors.includes(flavor);
+                        return (
+                          <button
+                            key={flavor}
+                            type="button"
+                            onClick={() => {
+                              if (isActive) {
+                                setFormData({ ...formData, flavors: formData.flavors.filter(f => f !== flavor) });
+                              } else {
+                                setFormData({ ...formData, flavors: [...formData.flavors, flavor] });
+                              }
+                            }}
+                            className={cn(
+                              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                              isActive 
+                                ? "bg-orange-500 text-white shadow-lg shadow-orange-100" 
+                                : "bg-gray-100 dark:bg-slate-800 text-gray-400 hover:text-gray-600"
+                            )}
+                          >
+                            {flavor}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -483,13 +497,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Configuration</p>
                         <p className="text-xs font-black text-main">
                           {order.category === 'Cake' 
-                            ? `${order.cakeSize}" ${order.flavor} (${order.frostingType})` 
+                            ? `${order.cakeSize}" ${order.flavors.join(', ') || 'No Flavor'} (${order.frostingType})` 
                             : order.packageType}
                         </p>
                       </div>
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price</p>
-                        <p className="text-sm font-black text-main">{formatCurrency(order.amount)}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price + Delivery</p>
+                        <p className="text-sm font-black text-main">
+                          {formatCurrency(order.amount)}
+                          {order.deliveryCost > 0 && <span className="ml-1 text-[8px] text-blue-500">(+ {formatCurrency(order.deliveryCost)})</span>}
+                        </p>
                       </div>
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">
                         <p className="text-[10px] font-black text-blue-600 dark:text-pink-400 uppercase tracking-widest mb-1">Commission</p>
