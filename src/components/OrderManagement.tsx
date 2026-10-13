@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, CreditCard, ClipboardList, X, Users } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, CreditCard, ClipboardList, X, Users, Image as ImageIcon, Sparkles, ChevronRight, Cake } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { format, isSameDay, parseISO } from 'date-fns';
-import { useData, Order, Rep, FrostingType, DeliveryType, PaymentStatus, OrderStatus } from './DataProvider';
-import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES } from '../lib/constants';
+import { useData, Order, Rep, FrostingType, DeliveryType, PaymentStatus, OrderStatus, OrderCategory } from './DataProvider';
+import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, CAKE_FLAVORS, ORDER_CATEGORIES, SMALL_CHOPS_PRICES } from '../lib/constants';
+
+import { BowIcon } from './icons/BowIcon';
 
 interface OrderManagementProps {
   orders: Order[];
@@ -11,16 +13,25 @@ interface OrderManagementProps {
 }
 
 export default function OrderManagement({ orders, reps }: OrderManagementProps) {
-  const { addOrder, updateOrder, deleteOrder } = useData();
+  const { addOrder, updateOrder, deleteOrder, theme } = useData();
   const [isAdding, setIsAdding] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     repId: '',
+    category: 'Cake' as OrderCategory,
     customerName: '',
     customerPhone: '',
+    // Cake
     cakeSize: 7,
     cakeLayers: 1,
     frostingType: 'Buttercream' as FrostingType,
+    flavor: CAKE_FLAVORS[0],
+    customization: '',
+    inspirationImage: '',
+    // Small Chops
+    packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
+    
     deliveryType: 'Pickup' as DeliveryType,
     deliveryDate: format(new Date(), 'yyyy-MM-dd'),
     paymentStatus: 'Pending' as PaymentStatus,
@@ -29,18 +40,23 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   });
 
   const calculatedPrice = useMemo(() => {
-    return CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0;
-  }, [formData.cakeSize, formData.cakeLayers, formData.frostingType]);
+    if (formData.category === 'Cake') {
+      return CAKE_PRICES[formData.cakeSize]?.[formData.cakeLayers]?.[formData.frostingType] || 0;
+    } else {
+      return SMALL_CHOPS_PRICES[formData.packageType]?.price || 0;
+    }
+  }, [formData.category, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.packageType]);
 
   const ordersToday = useMemo(() => {
     const today = new Date();
     return orders.filter(o => {
-      if (!o.createdAt) return false;
-      return isSameDay(parseISO(o.createdAt), today);
+      try {
+        return isSameDay(parseISO(o.createdAt), today);
+      } catch (e) { return false; }
     });
   }, [orders]);
 
-  const completedToday = ordersToday.filter(o => o.orderStatus === 'Completed').length;
+  const sentToday = ordersToday.filter(o => o.orderStatus !== 'Pending').length;
 
   const handleAddOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +65,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     addOrder({
       ...formData,
       amount: calculatedPrice,
-    });
+    } as any);
     setIsAdding(false);
     resetForm();
   };
@@ -57,17 +73,33 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   const resetForm = () => {
     setFormData({
       repId: '',
+      category: 'Cake',
       customerName: '',
       customerPhone: '',
       cakeSize: 7,
       cakeLayers: 1,
       frostingType: 'Buttercream',
+      flavor: CAKE_FLAVORS[0],
+      customization: '',
+      inspirationImage: '',
+      packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
       deliveryType: 'Pickup',
       deliveryDate: format(new Date(), 'yyyy-MM-dd'),
       paymentStatus: 'Pending',
       orderStatus: 'Pending',
       specialRequirements: ''
     });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, inspirationImage: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const updateStatus = (orderId: string, updates: Partial<Order>) => {
@@ -80,259 +112,396 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Order Management</h2>
+        <h2 className="text-2xl font-black text-main tracking-tight uppercase">Order Management</h2>
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center space-x-2 px-6 py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 font-bold"
+          className="flex items-center space-x-2 px-6 py-3 bg-gray-900 dark:bg-pink-600 text-white rounded-2xl hover:bg-gray-800 dark:hover:bg-pink-700 transition-all shadow-xl dark:shadow-none font-bold relative"
         >
+          {theme === 'pink' && <BowIcon size={12} className="absolute -top-1 -right-1 text-white" />}
           {isAdding ? <X size={20} /> : <Plus size={20} />}
-          <span>{isAdding ? 'Close' : 'New Cake Order'}</span>
+          <span>{isAdding ? 'Close Panel' : 'Create New Order'}</span>
         </button>
       </div>
 
+      {/* Daily Status Banner */}
+      <div className={cn(
+        "p-6 rounded-3xl border flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden transition-all",
+        sentToday > 0 ? "bg-green-50 dark:bg-green-900/10 border-green-100" : "bg-orange-50 dark:bg-orange-900/10 border-orange-100"
+      )}>
+        {theme === 'pink' && <BowIcon size={20} className="absolute -top-1 -right-1 text-pink-400 opacity-30" />}
+        <div className="flex items-center space-x-4 relative z-10">
+          <div className={cn(
+            "p-3 rounded-2xl shadow-sm",
+            sentToday > 0 ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300" : "bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300"
+          )}>
+            {sentToday > 0 ? <CheckCircle size={28} /> : <AlertCircle size={28} />}
+          </div>
+          <div>
+            <p className="font-black text-gray-900 dark:text-white uppercase text-xs tracking-widest">Daily Fulfillment</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-bold">
+              You've processed <span className="font-black text-gray-900 dark:text-white underline decoration-2">{sentToday}</span> orders today.
+            </p>
+          </div>
+        </div>
+        {sentToday === 0 && ordersToday.length > 0 && (
+          <div className="bg-white dark:bg-slate-800 px-6 py-2 rounded-2xl border border-orange-200 dark:border-orange-800 flex items-center space-x-3 animate-bounce relative z-10">
+            <Sparkles size={18} className="text-orange-500" />
+            <span className="text-xs font-black text-orange-700 dark:text-orange-300 uppercase tracking-widest">Action Required!</span>
+          </div>
+        )}
+      </div>
+
       {isAdding && (
-        <form onSubmit={handleAddOrder} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-xl animate-in slide-in-from-top duration-300 space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Customer & Rep Details */}
-            <div className="space-y-6">
-              <h3 className="text-sm font-black text-blue-600 uppercase tracking-widest flex items-center space-x-2">
-                <Users size={16} />
-                <span>Customer & Sales Rep</span>
+        <form onSubmit={handleAddOrder} className="bg-card p-10 rounded-[40px] border border-subtle shadow-2xl animate-in slide-in-from-top duration-500 space-y-10 relative overflow-hidden">
+          {theme === 'pink' && <BowIcon size={32} className="absolute -top-2 -right-2 text-pink-500" />}          {/* Order Category Switcher */}
+          <div className="flex justify-center">
+            <div className="flex p-2 bg-gray-100 dark:bg-slate-800 rounded-3xl w-full max-w-md">
+              {ORDER_CATEGORIES.map(cat => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, category: cat })}
+                  className={cn(
+                    "flex-1 py-3 px-6 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.2em]",
+                    formData.category === cat ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xl" : "text-gray-400 hover:text-gray-600"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* Core Info */}
+            <div className="space-y-8">
+              <h3 className="text-xs font-black text-blue-600 dark:text-pink-400 uppercase tracking-[0.3em] flex items-center space-x-3">
+                <Users size={18} />
+                <span>Basic Information</span>
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Sales Rep</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sales Rep</label>
                   <select
                     required
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
                     value={formData.repId}
                     onChange={e => setFormData({ ...formData, repId: e.target.value })}
                   >
                     <option value="">Select Rep</option>
-                    {reps.map(rep => (
-                      <option key={rep.id} value={rep.id}>{rep.name}</option>
-                    ))}
+                    {reps.map(rep => <option key={rep.id} value={rep.id}>{rep.name}</option>)}
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Customer Name</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Customer Name</label>
                   <input
                     required
                     type="text"
                     placeholder="e.g. John Doe"
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
                     value={formData.customerName}
                     onChange={e => setFormData({ ...formData, customerName: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Customer Phone</label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 08012345678"
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                    value={formData.customerPhone}
-                    onChange={e => setFormData({ ...formData, customerPhone: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Delivery Date</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Delivery Date</label>
                   <input
                     required
                     type="date"
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
                     value={formData.deliveryDate}
                     onChange={e => setFormData({ ...formData, deliveryDate: e.target.value })}
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* Cake Customization */}
-            <div className="space-y-6">
-              <h3 className="text-sm font-black text-orange-600 uppercase tracking-widest flex items-center space-x-2">
-                <Package size={16} />
-                <span>Cake Details</span>
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Size (Inches)</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Delivery Type</label>
                   <select
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-medium"
-                    value={formData.cakeSize}
-                    onChange={e => setFormData({ ...formData, cakeSize: parseInt(e.target.value) })}
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
+                    value={formData.deliveryType}
+                    onChange={e => setFormData({ ...formData, deliveryType: e.target.value as DeliveryType })}
                   >
-                    {CAKE_SIZES.map(size => <option key={size} value={size}>{size}"</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Layers</label>
-                  <select
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-medium"
-                    value={formData.cakeLayers}
-                    onChange={e => setFormData({ ...formData, cakeLayers: parseInt(e.target.value) })}
-                  >
-                    {CAKE_LAYERS.map(l => <option key={l} value={l}>{l} Layer{l > 1 ? 's' : ''}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Frosting</label>
-                  <select
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500 font-medium"
-                    value={formData.frostingType}
-                    onChange={e => setFormData({ ...formData, frostingType: e.target.value as FrostingType })}
-                  >
-                    {FROSTING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {DELIVERY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Delivery & Payment */}
-            <div className="space-y-6">
-              <h3 className="text-sm font-black text-purple-600 uppercase tracking-widest flex items-center space-x-2">
-                <MapPin size={16} />
-                <span>Logistics & Payment</span>
+            {/* Product Configuration */}
+            <div className="space-y-8">
+              <h3 className="text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-[0.3em] flex items-center space-x-3">
+                <Cake size={18} />
+                <span>Product Configurator</span>
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Delivery Mode</label>
-                  <div className="flex p-1 bg-gray-100 rounded-xl">
-                    {DELIVERY_TYPES.map(t => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, deliveryType: t })}
-                        className={cn(
-                          "flex-1 py-2 px-3 text-sm font-bold rounded-lg transition-all",
-                          formData.deliveryType === t ? "bg-white text-purple-600 shadow-sm" : "text-gray-500"
-                        )}
+              
+              {formData.category === 'Cake' ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Size</label>
+                      <select
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold dark:text-white"
+                        value={formData.cakeSize}
+                        onChange={e => setFormData({ ...formData, cakeSize: parseInt(e.target.value) })}
                       >
-                        {t}
-                      </button>
-                    ))}
+                        {CAKE_SIZES.map(s => <option key={s} value={s}>{s}"</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Layers</label>
+                      <select
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold dark:text-white"
+                        value={formData.cakeLayers}
+                        onChange={e => setFormData({ ...formData, cakeLayers: parseInt(e.target.value) })}
+                      >
+                        {CAKE_LAYERS.map(l => <option key={l} value={l}>{l}L</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Frosting</label>
+                      <select
+                        className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold dark:text-white"
+                        value={formData.frostingType}
+                        onChange={e => setFormData({ ...formData, frostingType: e.target.value as FrostingType })}
+                      >
+                        {FROSTING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Flavor Selection</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CAKE_FLAVORS.map(flavor => (
+                        <button
+                          key={flavor}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, flavor })}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                            formData.flavor === flavor 
+                              ? "bg-orange-500 text-white shadow-lg shadow-orange-100" 
+                              : "bg-gray-100 dark:bg-slate-800 text-gray-400 hover:text-gray-600"
+                          )}
+                        >
+                          {flavor}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Customization Details</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Blue ombre effect with gold drips"
+                      className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold dark:text-white"
+                      value={formData.customization}
+                      onChange={e => setFormData({ ...formData, customization: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Inspiration Picture</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full p-6 border-2 border-dashed border-subtle rounded-[32px] flex flex-col items-center justify-center space-y-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group"
+                    >
+                      {formData.inspirationImage ? (
+                        <img src={formData.inspirationImage} className="h-20 w-20 object-cover rounded-xl" alt="Preview" />
+                      ) : (
+                        <>
+                          <ImageIcon className="text-gray-300 group-hover:text-orange-500 transition-colors" size={32} />
+                          <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Click to upload</span>
+                        </>
+                      )}
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Payment Status</label>
-                  <select
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-purple-500 font-medium"
-                    value={formData.paymentStatus}
-                    onChange={e => setFormData({ ...formData, paymentStatus: e.target.value as PaymentStatus })}
-                  >
-                    {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+              ) : (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Package Selection</label>
+                    <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {Object.keys(SMALL_CHOPS_PRICES).map(pkg => (
+                        <button
+                          key={pkg}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, packageType: pkg })}
+                          className={cn(
+                            "w-full p-4 flex items-center justify-between rounded-2xl border transition-all text-left",
+                            formData.packageType === pkg 
+                              ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200" 
+                              : "bg-white dark:bg-slate-800 border-subtle hover:border-gray-200"
+                          )}
+                        >
+                          <div>
+                            <p className="font-black text-gray-900 dark:text-white text-sm">{pkg}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">₦{SMALL_CHOPS_PRICES[pkg].price.toLocaleString()}</p>
+                          </div>
+                          {formData.packageType === pkg && <CheckCircle size={20} className="text-orange-500" />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Special Requirements */}
-            <div className="space-y-6">
-              <h3 className="text-sm font-black text-gray-600 uppercase tracking-widest flex items-center space-x-2">
-                <ClipboardList size={16} />
-                <span>Special Requirements</span>
-              </h3>
-              <textarea
-                placeholder="Type any special instructions here..."
-                rows={3}
-                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-gray-400 font-medium resize-none"
-                value={formData.specialRequirements}
-                onChange={e => setFormData({ ...formData, specialRequirements: e.target.value })}
-              />
+              )}
             </div>
           </div>
 
-          <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div className="text-center sm:text-left">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Price</p>
-              <p className="text-4xl font-black text-gray-900">{formatCurrency(calculatedPrice)}</p>
-            </div>
-            <div className="flex space-x-4 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => { setIsAdding(false); resetForm(); }}
-                className="flex-1 sm:flex-none px-8 py-4 text-gray-500 font-bold hover:text-gray-700"
-              >
-                Discard
-              </button>
-              <button
-                type="submit"
-                className="flex-1 sm:flex-none px-12 py-4 bg-gray-900 text-white rounded-2xl font-black hover:bg-gray-800 transition-all shadow-2xl shadow-gray-200 active:scale-95"
-              >
-                Create Order
-              </button>
-            </div>
+          {/* Logistics & Price Footer */}
+          <div className="pt-10 border-t border-subtle">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Special Requirements</label>
+                 <textarea
+                   rows={3}
+                   placeholder="Any additional notes..."
+                   className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-3xl outline-none focus:ring-2 focus:ring-gray-400 font-bold dark:text-white resize-none"
+                   value={formData.specialRequirements}
+                   onChange={e => setFormData({ ...formData, specialRequirements: e.target.value })}
+                 />
+               </div>
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Payment</label>
+                    <select
+                      className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none font-bold dark:text-white"
+                      value={formData.paymentStatus}
+                      onChange={e => setFormData({ ...formData, paymentStatus: e.target.value as PaymentStatus })}
+                    >
+                      {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Progress</label>
+                    <select
+                      className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none font-bold dark:text-white"
+                      value={formData.orderStatus}
+                      onChange={e => setFormData({ ...formData, orderStatus: e.target.value as OrderStatus })}
+                    >
+                      {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+               </div>
+             </div>
+
+             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="text-center md:text-left">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-2">Final Quotation</p>
+                  <p className="text-5xl font-black text-main tracking-tighter">{formatCurrency(calculatedPrice)}</p>
+                </div>
+                <div className="flex space-x-4 w-full md:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => { setIsAdding(false); resetForm(); }}
+                    className="flex-1 md:flex-none px-8 py-5 text-gray-400 font-black uppercase tracking-widest hover:text-gray-600"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 md:flex-none px-12 py-5 bg-gray-900 dark:bg-pink-600 text-white rounded-[32px] font-black uppercase tracking-widest hover:bg-gray-800 dark:hover:bg-pink-700 transition-all shadow-2xl dark:shadow-none active:scale-95"
+                  >
+                    Confirm Order
+                  </button>
+                </div>
+             </div>
           </div>
         </form>
       )}
 
-      {/* Orders List */}
-      <div className="space-y-4">
+      {/* Interactive Orders List (Descending Order) */}
+      <div className="space-y-6">
         {orders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-            <Package className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 font-medium">No orders yet. Start by creating one!</p>
+          <div className="text-center py-40 bg-white dark:bg-slate-900/50 rounded-[40px] border border-dashed border-subtle">
+            <Sparkles className="mx-auto text-gray-200 dark:text-slate-800 mb-6" size={80} />
+            <p className="text-gray-400 font-black uppercase tracking-[0.4em] text-sm">Waiting for first order...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-6">
             {orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(order => {
               const rep = reps.find(r => r.id === order.repId);
               return (
-                <div key={order.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="flex items-start space-x-4">
-                      <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shrink-0">
-                        <Package size={24} />
+                <div key={order.id} className="bg-card p-8 rounded-[40px] border border-subtle shadow-sm hover:shadow-xl transition-all group relative overflow-hidden card-bow">
+                  <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8">
+                    <div className="flex items-start space-x-6">
+                      <div className={cn(
+                        "w-20 h-20 rounded-[32px] flex items-center justify-center shrink-0 shadow-lg",
+                        order.category === 'Cake' ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600" : "bg-orange-50 dark:bg-orange-900/30 text-orange-600"
+                      )}>
+                        {order.inspirationImage ? (
+                          <img src={order.inspirationImage} className="h-full w-full object-cover rounded-[32px]" alt="Inspo" />
+                        ) : (
+                          order.category === 'Cake' ? <Cake size={40} /> : <Package size={40} />
+                        )}
                       </div>
                       <div>
-                        <div className="flex items-center space-x-3 mb-1">
-                          <h3 className="font-black text-gray-900 text-lg">{order.customerName}</h3>
-                          <span className={cn(
-                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                            order.paymentStatus === 'Paid' ? "bg-green-100 text-green-700" :
-                            order.paymentStatus === 'Partial' ? "bg-orange-100 text-orange-700" :
-                            "bg-red-100 text-red-700"
-                          )}>
-                            {order.paymentStatus}
-                          </span>
+                        <div className="flex items-center space-x-4 mb-2">
+                          <h3 className="font-black text-main text-2xl tracking-tighter">{order.customerName}</h3>
+                          <div className="flex space-x-2">
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                              order.paymentStatus === 'Paid' ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" :
+                              order.paymentStatus === 'Partial' ? "bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300" :
+                              "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                            )}>
+                              {order.paymentStatus}
+                            </span>
+                            <span className="bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                              {order.category}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-xs font-bold text-gray-400 uppercase tracking-tighter">
-                          <span className="flex items-center space-x-1">
-                            <Clock size={12} />
-                            <span>Ordered: {format(parseISO(order.createdAt), 'MMM dd')}</span>
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          <span className="flex items-center space-x-2">
+                            <Clock size={14} className="text-gray-300" />
+                            <span>Ordered {format(parseISO(order.createdAt), 'MMM dd, p')}</span>
                           </span>
-                          <span className="flex items-center space-x-1 text-blue-600">
-                            <MapPin size={12} />
-                            <span>Due: {format(parseISO(order.deliveryDate), 'MMM dd')} ({order.deliveryType})</span>
+                          <span className="flex items-center space-x-2 text-blue-600 dark:text-pink-400">
+                            <MapPin size={14} />
+                            <span>Due {format(parseISO(order.deliveryDate), 'MMM dd')} — {order.deliveryType}</span>
                           </span>
-                          <span className="flex items-center space-x-1">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: rep?.color }} />
-                            <span>Rep: {rep?.name}</span>
+                          <span className="flex items-center space-x-2">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: rep?.color }} />
+                            <span>Rep: {rep?.name || 'Unknown'}</span>
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 lg:justify-end">
-                      <div className="px-4 py-2 bg-gray-50 rounded-2xl">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cake Spec</p>
-                        <p className="text-sm font-black text-gray-900">{order.cakeSize}" {order.cakeLayers}L {order.frostingType}</p>
+                    <div className="flex flex-wrap items-center gap-6 xl:justify-end">
+                      <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl min-w-[120px]">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Configuration</p>
+                        <p className="text-xs font-black text-main">
+                          {order.category === 'Cake' 
+                            ? `${order.cakeSize}" ${order.flavor} (${order.frostingType})` 
+                            : order.packageType}
+                        </p>
                       </div>
-                      <div className="px-4 py-2 bg-gray-50 rounded-2xl">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Amount</p>
-                        <p className="text-sm font-black text-gray-900">{formatCurrency(order.amount)}</p>
+                      <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price</p>
+                        <p className="text-sm font-black text-main">{formatCurrency(order.amount)}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">
+                        <p className="text-[10px] font-black text-blue-600 dark:text-pink-400 uppercase tracking-widest mb-1">Commission</p>
+                        <p className="text-sm font-black text-main underline decoration-blue-200">{formatCurrency(order.commission)}</p>
                       </div>
                       
                       <select
                         className={cn(
-                          "px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-widest outline-none border-none cursor-pointer",
-                          order.orderStatus === 'Completed' ? "bg-green-600 text-white shadow-lg shadow-green-100" :
-                          order.orderStatus === 'Out for Delivery' ? "bg-blue-600 text-white shadow-lg shadow-blue-100" :
-                          "bg-gray-100 text-gray-700"
+                          "px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] outline-none border-none cursor-pointer transition-all",
+                          order.orderStatus === 'Completed' ? "bg-green-600 text-white shadow-xl shadow-green-100 dark:shadow-none" :
+                          order.orderStatus === 'Out for Delivery' ? "bg-blue-600 text-white shadow-xl shadow-blue-100 dark:shadow-none" :
+                          "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300"
                         )}
                         value={order.orderStatus}
                         onChange={e => updateStatus(order.id, { orderStatus: e.target.value as OrderStatus })}
@@ -340,22 +509,37 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                         {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
 
-                      <button
-                        onClick={() => handleDelete(order.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          className="p-3 text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all"
+                        >
+                          <Trash2 size={24} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
-                  {order.specialRequirements && (
-                    <div className="mt-4 p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                      <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1 flex items-center space-x-1">
-                        <ClipboardList size={10} />
-                        <span>Requirements</span>
-                      </p>
-                      <p className="text-sm text-gray-700 font-medium italic">"{order.specialRequirements}"</p>
+                  {(order.specialRequirements || order.customization) && (
+                    <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {order.customization && (
+                        <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 rounded-3xl border border-blue-100/50 dark:border-blue-800/30">
+                          <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-2 flex items-center space-x-2">
+                            <Sparkles size={12} />
+                            <span>Design Specs</span>
+                          </p>
+                          <p className="text-sm text-main font-bold italic">"{order.customization}"</p>
+                        </div>
+                      )}
+                      {order.specialRequirements && (
+                        <div className="p-5 bg-orange-50/50 dark:bg-orange-900/10 rounded-3xl border border-orange-100/50 dark:border-orange-800/30">
+                          <p className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-2 flex items-center space-x-2">
+                            <ClipboardList size={12} />
+                            <span>Special Notes</span>
+                          </p>
+                          <p className="text-sm text-main font-bold italic">"{order.specialRequirements}"</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -367,5 +551,3 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     </div>
   );
 }
-
-

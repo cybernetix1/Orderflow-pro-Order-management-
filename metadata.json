@@ -1,6 +1,6 @@
 {
-  "name": "OrderFlow Pro",
-  "description": "A comprehensive order management system with sales representative dashboards, salary calculations, and supplier tracking.",
+  "name": "CakeFlow",
+  "description": "Premium Cake & Small Chops Order Management with professional commission tracking and cutesy branding.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

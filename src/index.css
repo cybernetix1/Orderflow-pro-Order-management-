@@ -1,1 +1,69 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: 15 23 42;
+    --primary-foreground: 255 255 255;
+    --background: 248 250 252;
+    --card: 255 255 255;
+    --border: 241 245 249;
+  }
+
+  .dark {
+    --primary: 241 245 249;
+    --primary-foreground: 15 23 42;
+    --background: 15 23 42;
+    --card: 30 41 59;
+    --border: 51 65 85;
+    color-scheme: dark;
+  }
+
+  .pink {
+    --primary: 219 39 119;
+    --primary-foreground: 255 255 255;
+    --background: 255 241 242;
+    --card: 255 255 255;
+    --border: 254 205 211;
+  }
+}
+
+@layer components {
+  .pink h1, .pink h2, .pink h3 {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Base styles using variables */
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--primary));
+}
+
+.bg-card {
+  background-color: rgb(var(--card));
+}
+
+.border-subtle {
+  border-color: rgb(var(--border));
+}
+
+.text-main {
+  color: rgb(var(--primary));
+}
