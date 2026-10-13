@@ -10,9 +10,10 @@ const PRESET_COLORS = [
 
 interface RepManagementProps {
   reps: Rep[];
+  onRepClick: (rep: Rep) => void;
 }
 
-export default function RepManagement({ reps }: RepManagementProps) {
+export default function RepManagement({ reps, onRepClick }: RepManagementProps) {
   const { addRep, updateRep, deleteRep, theme } = useData();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -134,7 +135,11 @@ export default function RepManagement({ reps }: RepManagementProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {reps.map(rep => (
-          <div key={rep.id} className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+          <div 
+            key={rep.id} 
+            onClick={() => onRepClick(rep)}
+            className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group relative overflow-hidden cursor-pointer active:scale-95"
+          >
             {theme === 'pink' && <BowIcon size={16} className="absolute -top-1 -right-1 text-pink-400 opacity-30 group-hover:rotate-12 transition-transform" />}
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-4">
@@ -149,7 +154,7 @@ export default function RepManagement({ reps }: RepManagementProps) {
                   <p className="text-sm text-gray-500 font-medium">{rep.email}</p>
                 </div>
               </div>
-              <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
                 <button onClick={() => startEdit(rep)} className="p-2 text-gray-400 hover:text-blue-600 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20">
                   <Edit2 size={18} />
                 </button>
@@ -158,9 +163,20 @@ export default function RepManagement({ reps }: RepManagementProps) {
                 </button>
               </div>
             </div>
-            <div className="mt-8 pt-6 border-t border-gray-50 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Commission</span>
-              <span className="font-black text-gray-900 dark:text-white text-lg">Automated Calculation</span>
+            <div className="mt-8 pt-6 border-t border-gray-50 dark:border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Commission</span>
+                <span className="font-black text-gray-900 dark:text-white text-lg">Automated</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRepClick(rep);
+                }}
+                className="w-full py-3 bg-gray-50 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-gray-900 hover:text-white dark:hover:bg-pink-600 transition-all active:scale-95"
+              >
+                View Performance
+              </button>
             </div>
           </div>
         ))}

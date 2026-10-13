@@ -101,7 +101,7 @@ function AppContent() {
             <OrderManagement orders={orders} reps={reps} />
           )}
           {activeTab === 'reps' && (
-            <RepManagement reps={reps} />
+            <RepManagement reps={reps} onRepClick={setSelectedRep} />
           )}
           {activeTab === 'reminders' && (
             <Reminders />
@@ -128,6 +128,7 @@ function AppContent() {
 
       {selectedRep && (
         <RepSalaryModal
+          key={selectedRep.id}
           rep={selectedRep}
           orders={orders}
           onClose={() => setSelectedRep(null)}

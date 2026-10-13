@@ -25,6 +25,9 @@ interface Order {
   commission: number;
   createdAt: string;
   orderStatus: string;
+  includeCake?: boolean;
+  includeSmallChops?: boolean;
+  customerName: string;
 }
 
 interface Rep {
@@ -40,7 +43,7 @@ interface RepSalaryModalProps {
 
 export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalProps) {
   const { theme } = useData();
-  const [period, setPeriod] = useState<'week' | 'month' | 'custom' | 'all'>('week');
+  const [period, setPeriod] = useState<'week' | 'month' | 'custom' | 'all'>('month');
   const [customRange, setCustomRange] = useState({ 
     start: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd')
@@ -137,7 +140,7 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
     return { totalOrders, totalCommission, totalSales, filtered, dailyBreakdown };
   }, [repOrders, period, customRange]);
 
-  if (!rep) return null;
+  if (!rep || !rep.id) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -234,31 +237,31 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
             {/* Daily Breakdown */}
             <div className="space-y-6">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center space-x-3">
-                <span>Daily History</span>
+                <span>Recent Activity</span>
                 <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800"></div>
               </h4>
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
-                {stats.dailyBreakdown.length > 0 ? stats.dailyBreakdown.map((day, i) => (
-                  <div key={i} className="p-5 bg-white dark:bg-slate-800 border border-subtle rounded-2xl flex items-center justify-between group hover:border-blue-100 dark:hover:border-pink-500 transition-all">
-                    <div>
-                      <p className="text-sm font-black text-gray-900 dark:text-white">{format(day.date, 'MMM dd')}</p>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{format(day.date, 'EEEE')}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="text-right">
-                        <p className="text-xs font-black text-gray-900 dark:text-white">{formatCurrency(day.commission)}</p>
-                        <p className="text-[10px] font-bold text-gray-400">{day.count} orders</p>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
+                {stats.filtered.length > 0 ? stats.filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 50).map((order) => (
+                  <div key={order.id} className="p-4 bg-white dark:bg-slate-800 border border-subtle rounded-2xl space-y-2 group hover:border-blue-100 dark:hover:border-pink-500 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <p className="text-sm font-black text-gray-900 dark:text-white">{order.customerName}</p>
+                          <div className="flex space-x-1">
+                            {order.includeCake && <div className="w-2 h-2 rounded-full bg-blue-500" title="Cake" />}
+                            {order.includeSmallChops && <div className="w-2 h-2 rounded-full bg-orange-500" title="Small Chops" />}
+                          </div>
+                        </div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{format(parseISO(order.createdAt), 'MMM dd, p')}</p>
                       </div>
-                      <div className={cn(
-                        "w-8 h-8 rounded-lg flex items-center justify-center",
-                        day.count > 0 ? "bg-blue-600 dark:bg-pink-500 text-white shadow-lg" : "bg-gray-100 dark:bg-slate-700 text-gray-400"
-                      )}>
-                        <DollarSign size={14} />
+                      <div className="text-right">
+                        <p className="text-xs font-black text-green-600 dark:text-green-400">+{formatCurrency(order.commission)}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.orderStatus}</p>
                       </div>
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-gray-400 text-sm py-10">No data for this period</p>
+                  <p className="text-center text-gray-400 text-sm py-10 uppercase tracking-widest font-black opacity-50">No activity for this period</p>
                 )}
               </div>
             </div>

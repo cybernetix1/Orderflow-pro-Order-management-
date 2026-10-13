@@ -132,11 +132,19 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
                   outerRadius={120}
                   paddingAngle={8}
                   dataKey="value"
-                  onClick={(data: any) => data && data.payload && onRepClick(data.payload.rep)}
-                  className="cursor-pointer outline-none"
+                  onClick={(data) => {
+                    if (data && data.payload) {
+                      onRepClick(data.payload.rep);
+                    }
+                  }}
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.color} 
+                      stroke="none" 
+                      className="cursor-pointer outline-none hover:opacity-80 transition-opacity"
+                    />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -152,7 +160,7 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
             </ResponsiveContainer>
           </div>
           <p className="text-center text-xs font-black text-blue-600 dark:text-pink-400 mt-4 uppercase tracking-widest animate-pulse">
-            Click a slice to view commission
+            Click a slice or list item to view tracker
           </p>
         </div>
 
@@ -161,10 +169,9 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
           <h3 className="text-lg font-black text-main mb-8 uppercase tracking-tighter">Performance Breakdown</h3>
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             {chartData.length > 0 ? chartData.sort((a, b) => b.value - a.value).map((data) => (
-              <button
+              <div
                 key={data.id}
-                onClick={() => onRepClick(data.rep)}
-                className="w-full text-left p-5 rounded-2xl border border-subtle hover:border-blue-100 dark:hover:border-pink-500 hover:bg-blue-50/10 dark:hover:bg-pink-500/10 transition-all group flex items-center justify-between relative overflow-hidden"
+                className="w-full p-5 rounded-2xl border border-subtle hover:border-blue-100 dark:hover:border-pink-500 bg-white dark:bg-slate-900/50 transition-all group flex items-center justify-between relative overflow-hidden"
               >
                 {theme === 'pink' && <BowIcon size={12} className="absolute -top-1 -right-1 text-pink-400 group-hover:scale-125 transition-transform" />}
                 <div className="flex items-center space-x-4">
@@ -180,11 +187,19 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
                   </div>
                 </div>
                 
-                <div className="text-right">
-                  <p className="text-2xl font-black text-main">{data.value}</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Orders</p>
+                <div className="flex items-center space-x-6">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-2xl font-black text-main">{data.value}</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Orders</p>
+                  </div>
+                  <button
+                    onClick={() => onRepClick(data.rep)}
+                    className="px-4 py-2 bg-gray-100 dark:bg-slate-800 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-900 hover:text-white dark:hover:bg-pink-600 transition-all active:scale-95"
+                  >
+                    View Tracker
+                  </button>
                 </div>
-              </button>
+              </div>
             )) : (
               <div className="text-center py-20 text-gray-400 font-bold uppercase tracking-widest text-sm">
                 No performance data yet
