@@ -15,8 +15,20 @@ import {
   subDays,
   startOfDay,
   endOfDay,
-  parseISO
+  parseISO,
+  isValid
 } from 'date-fns';
+
+const safeFormatDate = (dateStr: string | undefined, formatStr: string) => {
+  if (!dateStr) return 'No Date';
+  try {
+    const date = parseISO(dateStr);
+    if (!isValid(date)) return 'Invalid Date';
+    return format(date, formatStr);
+  } catch (e) {
+    return 'Invalid Date';
+  }
+};
 
 interface Order {
   id: string;
@@ -52,8 +64,8 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
   });
 
   const repOrders = useMemo(() => {
-    if (!rep || !orders) return [];
-    return orders.filter(o => o.repId === rep.id);
+    if (!rep?.id || !orders) return [];
+    return orders.filter(o => o && o.repId === rep.id);
   }, [orders, rep?.id]);
 
   const stats = useMemo(() => {
@@ -243,7 +255,11 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                 <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800"></div>
               </h4>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
-                {stats.filtered.length > 0 ? stats.filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 50).map((order) => (
+                {stats.filtered.length > 0 ? [...stats.filtered].sort((a, b) => {
+                  const dateA = new Date(a.createdAt || 0).getTime();
+                  const dateB = new Date(b.createdAt || 0).getTime();
+                  return dateB - dateA;
+                }).slice(0, 50).map((order) => (
                   <div key={order.id} className="p-4 bg-white dark:bg-slate-800 border border-subtle rounded-2xl space-y-2 group hover:border-blue-100 dark:hover:border-pink-500 transition-all">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -264,7 +280,7 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                             )}
                           </div>
                         </div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{format(parseISO(order.createdAt), 'MMM dd, p')}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{safeFormatDate(order.createdAt, 'MMM dd, p')}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-black text-green-600 dark:text-green-400">+{formatCurrency(order.commission)}</p>

@@ -133,8 +133,9 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
                   paddingAngle={8}
                   dataKey="value"
                   onClick={(data) => {
-                    if (data && data.payload) {
-                      onRepClick(data.payload.rep);
+                    const rep = data?.payload?.rep || data?.rep;
+                    if (rep && rep.id) {
+                      onRepClick(rep);
                     }
                   }}
                 >
@@ -168,7 +169,7 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
         <div className="bg-card p-8 rounded-3xl shadow-sm border border-subtle relative overflow-hidden">
           <h3 className="text-lg font-black text-main mb-8 uppercase tracking-tighter">Performance Breakdown</h3>
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            {chartData.length > 0 ? chartData.sort((a, b) => b.value - a.value).map((data) => (
+            {chartData.length > 0 ? [...chartData].sort((a, b) => b.value - a.value).map((data) => (
               <div
                 key={data.id}
                 className="w-full p-5 rounded-2xl border border-subtle hover:border-blue-100 dark:hover:border-pink-500 bg-white dark:bg-slate-900/50 transition-all group flex items-center justify-between relative overflow-hidden"
