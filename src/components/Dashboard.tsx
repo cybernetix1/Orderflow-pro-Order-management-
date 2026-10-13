@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { formatCurrency } from '../lib/utils';
-import { parseISO } from 'date-fns';
+import { formatCurrency, cn } from '../lib/utils';
+import { parseISO, isSameDay } from 'date-fns';
+import { Package, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 
 interface Order {
   id: string;
   repId: string;
   amount: number;
-  status: string;
+  orderStatus: string;
   customerName: string;
   createdAt: string;
 }
@@ -17,7 +18,6 @@ interface Rep {
   name: string;
   color: string;
   commissionPerOrder?: number;
-  dailyGoal?: number;
 }
 
 interface DashboardProps {
@@ -37,14 +37,13 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
     return reps.map(rep => {
       const todayOrders = orders.filter(o => {
         const date = parseISO(o.createdAt);
-        return o.repId === rep.id && date.toDateString() === today.toDateString();
+        return o.repId === rep.id && isSameDay(date, today);
       });
 
       return {
         name: rep.name,
         value: counts[rep.id] || 0,
         todayValue: todayOrders.length,
-        goal: rep.dailyGoal || 5,
         color: rep.color,
         id: rep.id,
         rep: rep
@@ -53,100 +52,107 @@ export default function Dashboard({ orders, reps, onRepClick }: DashboardProps) 
   }, [orders, reps]);
 
   const totalOrders = orders.length;
-  const pendingOrders = orders.filter(o => o.status === 'pending').length;
-  const processedOrders = orders.filter(o => o.status === 'sent_to_processor' || o.status === 'completed').length;
+  const processingOrders = orders.filter(o => o.orderStatus === 'Processing').length;
+  const completedOrders = orders.filter(o => o.orderStatus === 'Completed').length;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-sm font-medium text-gray-500">Total Orders</p>
-          <p className="text-3xl font-bold text-gray-900">{totalOrders}</p>
+    <div className="space-y-8">
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center space-x-6">
+          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
+            <ShoppingCart size={32} />
+          </div>
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Total Orders</p>
+            <p className="text-4xl font-black text-gray-900 leading-none">{totalOrders}</p>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-sm font-medium text-gray-500">Pending</p>
-          <p className="text-3xl font-bold text-yellow-600">{pendingOrders}</p>
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center space-x-6">
+          <div className="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center">
+            <Clock size={32} />
+          </div>
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Processing</p>
+            <p className="text-4xl font-black text-gray-900 leading-none">{processingOrders}</p>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <p className="text-sm font-medium text-gray-500">Sent to Processor</p>
-          <p className="text-3xl font-bold text-green-600">{processedOrders}</p>
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 flex items-center space-x-6">
+          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center">
+            <CheckCircle size={32} />
+          </div>
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Completed</p>
+            <p className="text-4xl font-black text-gray-900 leading-none">{completedOrders}</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Orders by Representative</h3>
-          <div className="h-[300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Pie Chart */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 min-h-[450px] flex flex-col">
+          <h3 className="text-lg font-black text-gray-900 mb-8 uppercase tracking-tighter">Orders by Representative</h3>
+          <div className="flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
+                  innerRadius={80}
+                  outerRadius={120}
+                  paddingAngle={8}
                   dataKey="value"
                   onClick={(data) => onRepClick(data.rep)}
-                  className="cursor-pointer"
+                  className="cursor-pointer outline-none"
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                   ))}
                 </Pie>
                 <Tooltip 
                    formatter={(value: number) => [`${value} Orders`, 'Volume']}
-                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                   contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
                 />
-                <Legend verticalAlign="bottom" height={36}/>
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36} 
+                  formatter={(value) => <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{value}</span>}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <p className="text-center text-sm text-gray-500 mt-2 italic">
+          <p className="text-center text-xs font-black text-blue-600 mt-4 uppercase tracking-widest animate-pulse">
             Click a slice to calculate salary
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-4 text-gray-800">Representative Breakdown</h3>
+        {/* Rep List */}
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-black text-gray-900 mb-8 uppercase tracking-tighter">Performance Breakdown</h3>
           <div className="space-y-4">
-            {chartData.sort((a, b) => b.value - a.value).map((data) => {
-              const progress = Math.min((data.todayValue / data.goal) * 100, 100);
-              return (
-                <button
-                  key={data.id}
-                  onClick={() => onRepClick(data.rep)}
-                  className="w-full text-left p-4 rounded-xl border border-gray-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: data.color }} />
-                      <span className="font-bold text-gray-900">{data.name}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{data.todayValue} / {data.goal} Goal Today</span>
-                    </div>
+            {chartData.sort((a, b) => b.value - a.value).map((data) => (
+              <button
+                key={data.id}
+                onClick={() => onRepClick(data.rep)}
+                className="w-full text-left p-5 rounded-2xl border border-gray-50 hover:border-blue-100 hover:bg-blue-50/30 transition-all group flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-sm" style={{ backgroundColor: data.color }}>
+                    {data.name.charAt(0)}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-700 rounded-full ${
-                          progress >= 100 ? 'bg-green-500' : progress >= 50 ? 'bg-blue-500' : 'bg-orange-500'
-                        }`}
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                      <span>{data.value} Total Orders</span>
-                      <span className={progress >= 100 ? "text-green-600" : ""}>
-                        {progress >= 100 ? 'Goal Met!' : `${Math.round(progress)}% of daily goal`}
-                      </span>
-                    </div>
+                  <div>
+                    <h4 className="font-black text-gray-900">{data.name}</h4>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{data.todayValue} orders today</p>
                   </div>
-                </button>
-              );
-            })}
+                </div>
+                
+                <div className="text-right">
+                  <p className="text-2xl font-black text-gray-900">{data.value}</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Orders</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       </div>

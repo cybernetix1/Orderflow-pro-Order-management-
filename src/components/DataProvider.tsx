@@ -6,18 +6,29 @@ export interface Rep {
   email: string;
   color: string;
   commissionPerOrder: number;
-  dailyGoal?: number;
 }
+
+export type FrostingType = 'Buttercream' | 'Whipped Cream';
+export type DeliveryType = 'Room Delivery' | 'Pickup';
+export type PaymentStatus = 'Pending' | 'Partial' | 'Paid';
+export type OrderStatus = 'Pending' | 'Processing' | 'Ready' | 'Out for Delivery' | 'Completed';
 
 export interface Order {
   id: string;
   repId: string;
   customerName: string;
+  customerPhone?: string;
+  cakeSize: number; // inches
+  cakeLayers: number;
+  frostingType: FrostingType;
   amount: number;
-  status: 'pending' | 'sent_to_processor' | 'completed';
-  createdAt: string; // ISO string for local storage
+  paymentStatus: PaymentStatus;
+  orderStatus: OrderStatus;
+  deliveryType: DeliveryType;
+  deliveryDate: string;
+  specialRequirements: string;
+  createdAt: string;
   updatedAt: string;
-  sentToProcessorAt?: string;
 }
 
 interface DataContextType {
@@ -33,8 +44,8 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_KEY_REPS = 'orderflow_reps';
-const STORAGE_KEY_ORDERS = 'orderflow_orders';
+const STORAGE_KEY_REPS = 'cakeflow_reps';
+const STORAGE_KEY_ORDERS = 'cakeflow_orders';
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [reps, setReps] = useState<Rep[]>(() => {
@@ -85,7 +96,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       ...o, 
       ...order, 
       updatedAt: now,
-      ...(order.status === 'sent_to_processor' ? { sentToProcessorAt: now } : {})
     } : o));
   };
 

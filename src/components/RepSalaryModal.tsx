@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { X, Calculator, TrendingUp } from 'lucide-react';
+import { X, Calculator, Calendar, TrendingUp } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { 
   format, 
@@ -21,14 +21,13 @@ interface Order {
   repId: string;
   amount: number;
   createdAt: string;
-  status: string;
+  orderStatus: string;
 }
 
 interface Rep {
   id: string;
   name: string;
   commissionPerOrder?: number;
-  dailyGoal?: number;
 }
 
 interface RepSalaryModalProps {
@@ -72,16 +71,15 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
     }
 
     const count = filtered.length;
-    const commission = rep.commissionPerOrder || 50;
+    const commission = rep.commissionPerOrder || 1000;
     const totalSalary = count * commission;
 
     // Daily breakdown
     const breakdownRange = range || { 
-      start: repOrders.length > 0 ? parseISO(repOrders[0].createdAt) : subDays(now, 6), 
+      start: repOrders.length > 0 ? parseISO(repOrders[repOrders.length - 1].createdAt) : subDays(now, 6), 
       end: now 
     };
     
-    // Safety check for invalid dates or extremely large ranges
     let days: Date[] = [];
     try {
       days = eachDayOfInterval(breakdownRange);
@@ -94,136 +92,137 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
       return {
         date: day,
         count: dayOrders.length,
-        goal: rep.dailyGoal || 5
       };
-    }).reverse().slice(0, 31); // Limit to 31 days for UI safety
+    }).reverse().slice(0, 31);
 
     return { count, commission, totalSalary, filtered, dailyBreakdown };
-  }, [repOrders, period, customRange, rep.commissionPerOrder, rep.dailyGoal]);
+  }, [repOrders, period, customRange, rep.commissionPerOrder]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 my-8">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300 my-8">
         {/* Header */}
-        <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200">
-              <Calculator size={24} />
+        <div className="p-10 border-b border-gray-100 flex items-center justify-between bg-gradient-to-br from-blue-50/50 to-white">
+          <div className="flex items-center space-x-5">
+            <div className="p-4 bg-gray-900 text-white rounded-3xl shadow-xl shadow-gray-200">
+              <Calculator size={32} />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-gray-900 leading-tight">{rep.name}</h3>
-              <p className="text-blue-600 font-semibold text-sm uppercase tracking-wider">Salary Breakdown</p>
+              <h3 className="text-3xl font-black text-gray-900 leading-tight tracking-tighter">{rep.name}</h3>
+              <p className="text-blue-600 font-black text-xs uppercase tracking-[0.2em]">Salary Calculator</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-2 bg-white rounded-full shadow-sm">
-            <X size={24} />
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-all p-3 bg-white rounded-full shadow-sm hover:rotate-90">
+            <X size={28} />
           </button>
         </div>
 
-        <div className="p-8 space-y-8">
+        <div className="p-10 space-y-10">
           {/* Period Selector */}
-          <div className="space-y-4">
-            <div className="flex p-1.5 bg-gray-100 rounded-2xl">
+          <div className="space-y-6">
+            <div className="flex p-2 bg-gray-100 rounded-3xl">
               {(['week', 'month', 'custom', 'all'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={cn(
-                    "flex-1 py-2.5 px-4 text-sm font-bold rounded-xl capitalize transition-all",
-                    period === p ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                    "flex-1 py-3 px-4 text-xs font-black rounded-2xl capitalize transition-all tracking-widest",
+                    period === p ? "bg-white text-gray-900 shadow-xl" : "text-gray-400 hover:text-gray-600"
                   )}
                 >
-                  {p === 'all' ? 'All Time' : p}
+                  {p === 'all' ? 'Life' : p}
                 </button>
               ))}
             </div>
 
             {period === 'custom' && (
-              <div className="flex items-center space-x-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <input 
-                  type="date" 
-                  value={customRange.start}
-                  onChange={e => setCustomRange({...customRange, start: e.target.value})}
-                  className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                />
-                <span className="text-gray-400 font-bold">to</span>
-                <input 
-                  type="date" 
-                  value={customRange.end}
-                  onChange={e => setCustomRange({...customRange, end: e.target.value})}
-                  className="flex-1 p-2 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                />
+              <div className="flex items-center space-x-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Start Date</label>
+                  <input 
+                    type="date" 
+                    value={customRange.start}
+                    onChange={e => setCustomRange({...customRange, start: e.target.value})}
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-black"
+                  />
+                </div>
+                <div className="pt-6 font-black text-gray-300">/</div>
+                <div className="flex-1 space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">End Date</label>
+                  <input 
+                    type="date" 
+                    value={customRange.end}
+                    onChange={e => setCustomRange({...customRange, end: e.target.value})}
+                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-sm font-black"
+                  />
+                </div>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Summary Stats */}
-            <div className="space-y-6">
-              <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4">
+            <div className="space-y-8">
+              <div className="bg-gray-50 p-8 rounded-[32px] border border-gray-100 space-y-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Orders Found</span>
-                  <span className="font-black text-xl text-gray-900">{stats.count}</span>
+                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Total Orders</span>
+                  <span className="font-black text-2xl text-gray-900">{stats.count}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 font-medium">Commission / Order</span>
-                  <span className="font-black text-xl text-gray-900">{formatCurrency(stats.commission)}</span>
+                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Commission</span>
+                  <span className="font-black text-2xl text-gray-900">{formatCurrency(stats.commission)}</span>
                 </div>
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Total Payout</p>
-                  <p className="text-4xl font-black text-gray-900">{formatCurrency(stats.totalSalary)}</p>
+                <div className="pt-6 border-t border-gray-200">
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">Total Salary Earned</p>
+                  <p className="text-5xl font-black text-gray-900 tracking-tighter">{formatCurrency(stats.totalSalary)}</p>
                 </div>
               </div>
 
-              <div className="bg-blue-600 p-6 rounded-3xl text-white shadow-xl shadow-blue-100 flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-1">Goal Status</p>
-                  <p className="text-2xl font-black">
-                    {stats.count >= (rep.dailyGoal || 5) ? 'Goal Met! 🎉' : 'Keep Going! 💪'}
+              <div className="bg-gray-900 p-8 rounded-[32px] text-white shadow-2xl shadow-gray-200 flex items-center justify-between group overflow-hidden relative">
+                <div className="relative z-10">
+                  <p className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Performance</p>
+                  <p className="text-2xl font-black tracking-tight">
+                    {stats.count > 0 ? `${stats.count} orders delivered` : 'No orders in range'}
                   </p>
                 </div>
-                <TrendingUp size={32} className="text-blue-400" />
+                <TrendingUp size={48} className="text-gray-800 absolute -right-2 -bottom-2 group-hover:scale-110 transition-transform duration-500" />
               </div>
             </div>
 
             {/* Daily Breakdown */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center space-x-2">
-                <span>Daily Breakdown</span>
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center space-x-3">
+                <span>Timeline</span>
                 <div className="h-px flex-1 bg-gray-100"></div>
               </h4>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                {stats.dailyBreakdown.map((day, i) => {
-                  const progress = Math.min((day.count / day.goal) * 100, 100);
-                  return (
-                    <div key={i} className="p-4 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 transition-colors group">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-700">{format(day.date, 'MMM dd, EEE')}</span>
-                        <span className="text-xs font-black text-gray-900">{day.count} / {day.goal}</span>
-                      </div>
-                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full transition-all duration-500 rounded-full",
-                            progress >= 100 ? "bg-green-500" : progress >= 50 ? "bg-blue-500" : "bg-orange-500"
-                          )}
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+                {stats.dailyBreakdown.map((day, i) => (
+                  <div key={i} className="p-5 bg-white border border-gray-100 rounded-2xl flex items-center justify-between group hover:border-blue-100 transition-all">
+                    <div>
+                      <p className="text-sm font-black text-gray-900">{format(day.date, 'MMM dd')}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{format(day.date, 'EEEE')}</p>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center space-x-3">
+                      <span className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm",
+                        day.count > 0 ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : "bg-gray-100 text-gray-400"
+                      )}>
+                        {day.count}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end">
+        <div className="p-10 bg-gray-50 border-t border-gray-100 flex justify-end">
           <button
             onClick={onClose}
-            className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 active:scale-95"
+            className="px-12 py-4 bg-gray-900 text-white rounded-3xl font-black hover:bg-gray-800 transition-all shadow-2xl shadow-gray-200 active:scale-95 uppercase tracking-widest text-xs"
           >
-            Done
+            Close Calculator
           </button>
         </div>
       </div>
