@@ -42,6 +42,8 @@ interface Order {
   includeSmallChops?: boolean;
   smallChopsQuantity?: number;
   customerName: string;
+  customerRoomNumber?: string;
+  deliveryType?: string;
 }
 
 interface Rep {
@@ -248,48 +250,66 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
               </div>
             </div>
 
-            {/* Daily Breakdown */}
+            {/* Order History */}
             <div className="space-y-6">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] flex items-center space-x-3">
-                <span>Recent Activity</span>
+                <span>{period === 'all' ? 'Full Order History' : 'Period Activity'}</span>
                 <div className="h-px flex-1 bg-gray-100 dark:bg-slate-800"></div>
               </h4>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
                 {stats.filtered.length > 0 ? [...stats.filtered].sort((a, b) => {
                   const dateA = new Date(a.createdAt || 0).getTime();
                   const dateB = new Date(b.createdAt || 0).getTime();
                   return dateB - dateA;
-                }).slice(0, 50).map((order) => (
-                  <div key={order.id} className="p-4 bg-white dark:bg-slate-800 border border-subtle rounded-2xl space-y-2 group hover:border-blue-100 dark:hover:border-pink-500 transition-all">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-black text-gray-900 dark:text-white">{order.customerName}</p>
-                          <div className="flex space-x-1">
-                            {order.includeCake && (
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 rounded-full bg-blue-500" title="Cake" />
-                                {order.cakeQuantity && order.cakeQuantity > 1 && <span className="text-[8px] font-black text-blue-600">{order.cakeQuantity}x</span>}
-                              </div>
-                            )}
-                            {order.includeSmallChops && (
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 rounded-full bg-orange-500" title="Small Chops" />
-                                {order.smallChopsQuantity && order.smallChopsQuantity > 1 && <span className="text-[8px] font-black text-orange-600">{order.smallChopsQuantity}x</span>}
-                              </div>
+                }).map((order) => {
+                  // Calculate breakdown for display
+                  const cakeComm = order.includeCake ? 1000 * (order.cakeQuantity || 1) : 0;
+                  const scComm = (order.commission || 0) - cakeComm - (order.deliveryType !== 'Pickup' ? 500 : 0); // Rough estimate for display
+                  
+                  return (
+                    <div key={order.id} className="p-5 bg-white dark:bg-slate-800 border border-subtle rounded-[24px] space-y-3 group hover:border-blue-200 dark:hover:border-pink-500 transition-all shadow-sm">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <p className="text-sm font-black text-gray-900 dark:text-white">{order.customerName}</p>
+                            {order.customerRoomNumber && (
+                              <span className="px-2 py-0.5 bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-pink-400 text-[8px] font-black rounded-full uppercase tracking-widest">
+                                Room {order.customerRoomNumber}
+                              </span>
                             )}
                           </div>
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {order.includeCake && (
+                              <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                                Cake ({order.cakeQuantity}x)
+                              </span>
+                            )}
+                            {order.includeSmallChops && (
+                              <span className="flex items-center text-[9px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
+                                Small Chops ({order.smallChopsQuantity}x)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{safeFormatDate(order.createdAt, 'MMM dd, yyyy • p')}</p>
                         </div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{safeFormatDate(order.createdAt, 'MMM dd, p')}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-black text-green-600 dark:text-green-400">+{formatCurrency(order.commission)}</p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{order.orderStatus}</p>
+                        <div className="text-right flex flex-col items-end">
+                          <div className="bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-xl mb-1 group-hover:scale-105 transition-transform">
+                            <p className="text-sm font-black text-green-600 dark:text-green-400">+{formatCurrency(order.commission)}</p>
+                          </div>
+                          <p className={cn(
+                            "text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md",
+                            order.orderStatus === 'Completed' || order.orderStatus === 'Delivered' ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" :
+                            order.orderStatus === 'In Progress' ? "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300" :
+                            "bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300"
+                          )}>{order.orderStatus}</p>
+                        </div>
                       </div>
                     </div>
+                  );
+                }) : (
+                  <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-slate-800/30 rounded-[32px] border border-dashed border-subtle">
+                    <p className="text-gray-400 text-xs uppercase tracking-[0.2em] font-black opacity-50">No activity recorded</p>
                   </div>
-                )) : (
-                  <p className="text-center text-gray-400 text-sm py-10 uppercase tracking-widest font-black opacity-50">No activity for this period</p>
                 )}
               </div>
             </div>

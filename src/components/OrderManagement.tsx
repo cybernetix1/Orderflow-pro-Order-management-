@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, CreditCard, ClipboardList, X, Users, Image as ImageIcon, Sparkles, ChevronRight, Cake } from 'lucide-react';
+import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, CreditCard, ClipboardList, X, Users, Image as ImageIcon, Sparkles, ChevronRight, Cake, Search, Filter } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { useData, Order, Rep, FrostingType, DeliveryType, PaymentStatus, OrderStatus } from './DataProvider';
@@ -12,6 +12,21 @@ interface OrderManagementProps {
   reps: Rep[];
 }
 
+const getStatusConfig = (status: OrderStatus) => {
+  switch (status) {
+    case 'Pending':
+      return { icon: Clock, color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' };
+    case 'In Progress':
+      return { icon: Sparkles, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100' };
+    case 'Completed':
+      return { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', border: 'border-green-100' };
+    case 'Delivered':
+      return { icon: Send, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-100' };
+    default:
+      return { icon: Clock, color: 'text-gray-500', bg: 'bg-gray-100', border: 'border-gray-200' };
+  }
+};
+
 export default function OrderManagement({ orders, reps }: OrderManagementProps) {
   const { addOrder, updateOrder, deleteOrder, theme } = useData();
   const [isAdding, setIsAdding] = useState(false);
@@ -23,6 +38,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     includeSmallChops: false,
     customerName: '',
     customerPhone: '',
+    customerRoomNumber: '',
     // Cake
     cakeSize: 7,
     cakeLayers: 1,
@@ -39,8 +55,13 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     deliveryDate: format(new Date(), 'yyyy-MM-dd'),
     paymentStatus: 'Pending' as PaymentStatus,
     orderStatus: 'Pending' as OrderStatus,
-    specialRequirements: ''
+    specialRequirements: '',
+    notes: ''
   });
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterRep, setFilterRep] = useState<string>('all');
 
   const calculatedPrice = useMemo(() => {
     let cakePrice = 0;
@@ -66,6 +87,22 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     });
   }, [orders]);
 
+  const filteredOrders = useMemo(() => {
+    return orders
+      .filter(order => {
+        const matchesSearch = 
+          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (order.customerRoomNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+          (order.specialRequirements?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = filterStatus === 'all' || order.orderStatus === filterStatus;
+        const matchesRep = filterRep === 'all' || order.repId === filterRep;
+
+        return matchesSearch && matchesStatus && matchesRep;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders, searchTerm, filterStatus, filterRep]);
+
   const sentToday = ordersToday.filter(o => o.orderStatus !== 'Pending').length;
 
   const handleAddOrder = (e: React.FormEvent) => {
@@ -88,6 +125,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
       includeSmallChops: false,
       customerName: '',
       customerPhone: '',
+      customerRoomNumber: '',
       cakeSize: 7,
       cakeLayers: 1,
       cakeQuantity: 1,
@@ -101,7 +139,8 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
       deliveryDate: format(new Date(), 'yyyy-MM-dd'),
       paymentStatus: 'Pending',
       orderStatus: 'Pending',
-      specialRequirements: ''
+      specialRequirements: '',
+      notes: ''
     });
   };
 
@@ -225,6 +264,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
                     value={formData.customerName}
                     onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Room Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Room 302"
+                    className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
+                    value={formData.customerRoomNumber}
+                    onChange={e => setFormData({ ...formData, customerRoomNumber: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -429,6 +478,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                    onChange={e => setFormData({ ...formData, specialRequirements: e.target.value })}
                  />
                </div>
+               <div className="space-y-2">
+                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Internal Notes</label>
+                 <textarea
+                   rows={3}
+                   placeholder="Private notes for the team..."
+                   className="w-full p-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-3xl outline-none focus:ring-2 focus:ring-gray-400 font-bold dark:text-white resize-none"
+                   value={formData.notes}
+                   onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                 />
+               </div>
                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Payment</label>
@@ -477,17 +536,71 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
           </div>
         </form>
       )}
+      {/* Search and Filters */}
+      <div className="bg-white dark:bg-slate-900/40 p-6 rounded-[32px] border border-subtle shadow-sm flex flex-col md:flex-row gap-4 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            placeholder="Search by name, room, or notes..."
+            className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold dark:text-white"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-48">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+            <select
+              className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-black uppercase text-[10px] tracking-widest appearance-none dark:text-white"
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="all">All Statuses</option>
+              {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="relative flex-1 md:w-48">
+            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+            <select
+              className="w-full pl-10 pr-4 py-4 bg-gray-50 dark:bg-slate-800 border border-subtle rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-black uppercase text-[10px] tracking-widest appearance-none dark:text-white"
+              value={filterRep}
+              onChange={e => setFilterRep(e.target.value)}
+            >
+              <option value="all">All Reps</option>
+              {reps.map(rep => <option key={rep.id} value={rep.id}>{rep.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {(searchTerm || filterStatus !== 'all' || filterRep !== 'all') && (
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setFilterStatus('all');
+              setFilterRep('all');
+            }}
+            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 px-4 py-2"
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       {/* Interactive Orders List (Descending Order) */}
       <div className="space-y-6">
-        {orders.length === 0 ? (
+        {filteredOrders.length === 0 ? (
           <div className="text-center py-40 bg-white dark:bg-slate-900/50 rounded-[40px] border border-dashed border-subtle">
             <Sparkles className="mx-auto text-gray-200 dark:text-slate-800 mb-6" size={80} />
-            <p className="text-gray-400 font-black uppercase tracking-[0.4em] text-sm">Waiting for first order...</p>
+            <p className="text-gray-400 font-black uppercase tracking-[0.4em] text-sm">
+              {orders.length === 0 ? 'Waiting for first order...' : 'No orders match your search'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
-            {orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(order => {
+            {filteredOrders.map(order => {
               const rep = reps.find(r => r.id === order.repId);
               return (
                 <div key={order.id} className="bg-card p-8 rounded-[40px] border border-subtle shadow-sm hover:shadow-xl transition-all group relative overflow-hidden card-bow">
@@ -508,7 +621,14 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                       </div>
                       <div>
                         <div className="flex items-center space-x-4 mb-2">
-                          <h3 className="font-black text-main text-2xl tracking-tighter">{order.customerName}</h3>
+                          <div className="flex flex-col">
+                            <h3 className="font-black text-main text-2xl tracking-tighter">{order.customerName}</h3>
+                            {order.customerRoomNumber && (
+                              <span className="text-[10px] font-black text-blue-600 dark:text-pink-400 uppercase tracking-widest -mt-1">
+                                {order.customerRoomNumber}
+                              </span>
+                            )}
+                          </div>
                             <div className="flex space-x-2">
                               <span className={cn(
                                 "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
@@ -530,8 +650,18 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                               )}
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-x-6 gap-y-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                          <span className="flex items-center space-x-2">
+                        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          {(() => {
+                            const config = getStatusConfig(order.orderStatus);
+                            const StatusIcon = config.icon;
+                            return (
+                              <span className={cn("flex items-center space-x-1.5 px-3 py-1 rounded-xl border", config.bg, config.color, config.border)}>
+                                <StatusIcon size={12} />
+                                <span>{order.orderStatus}</span>
+                              </span>
+                            );
+                          })()}
+                          <span className="flex items-center space-x-2 h-6">
                             <Clock size={14} className="text-gray-300" />
                             <span>Ordered {format(parseISO(order.createdAt), 'MMM dd, p')}</span>
                           </span>
@@ -572,7 +702,8 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                         className={cn(
                           "px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-[0.2em] outline-none border-none cursor-pointer transition-all",
                           order.orderStatus === 'Completed' ? "bg-green-600 text-white shadow-xl shadow-green-100 dark:shadow-none" :
-                          order.orderStatus === 'Out for Delivery' ? "bg-blue-600 text-white shadow-xl shadow-blue-100 dark:shadow-none" :
+                          order.orderStatus === 'Delivered' ? "bg-blue-600 text-white shadow-xl shadow-blue-100 dark:shadow-none" :
+                          order.orderStatus === 'In Progress' ? "bg-orange-600 text-white shadow-xl shadow-orange-100 dark:shadow-none" :
                           "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300"
                         )}
                         value={order.orderStatus}
@@ -592,7 +723,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     </div>
                   </div>
                   
-                  {(order.specialRequirements || order.customization) && (
+                  {(order.specialRequirements || order.customization || order.notes) && (
                     <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                       {order.customization && (
                         <div className="p-5 bg-blue-50/50 dark:bg-blue-900/10 rounded-3xl border border-blue-100/50 dark:border-blue-800/30">
@@ -610,6 +741,15 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                             <span>Special Notes</span>
                           </p>
                           <p className="text-sm text-main font-bold italic">"{order.specialRequirements}"</p>
+                        </div>
+                      )}
+                      {order.notes && (
+                        <div className="p-5 bg-gray-50/50 dark:bg-slate-900/10 rounded-3xl border border-subtle">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center space-x-2">
+                            <ClipboardList size={12} />
+                            <span>Internal Notes</span>
+                          </p>
+                          <p className="text-sm text-main font-bold italic">"{order.notes}"</p>
                         </div>
                       )}
                     </div>

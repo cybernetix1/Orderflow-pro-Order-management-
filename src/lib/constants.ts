@@ -49,7 +49,7 @@ export const CAKE_LAYERS = [1, 2, 3];
 export const FROSTING_TYPES = ['Buttercream', 'Whipped Cream'] as const;
 export const DELIVERY_TYPES = ['Room Delivery', 'Pickup', 'Delivery Pickup', 'Wrong Delivery'] as const;
 export const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'] as const;
-export const ORDER_STATUSES = ['Pending', 'Processing', 'Ready', 'Out for Delivery', 'Completed'] as const;
+export const ORDER_STATUSES = ['Pending', 'In Progress', 'Completed', 'Delivered'] as const;
 export const CAKE_FLAVORS = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Carrot', 'Coconut', 'Marble'];
 
 export const DELIVERY_COSTS: Record<string, number> = {

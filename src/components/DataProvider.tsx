@@ -10,7 +10,7 @@ export interface Rep {
 export type FrostingType = 'Buttercream' | 'Whipped Cream';
 export type DeliveryType = 'Room Delivery' | 'Pickup' | 'Delivery Pickup' | 'Wrong Delivery';
 export type PaymentStatus = 'Pending' | 'Partial' | 'Paid';
-export type OrderStatus = 'Pending' | 'Processing' | 'Ready' | 'Out for Delivery' | 'Completed';
+export type OrderStatus = 'Pending' | 'In Progress' | 'Completed' | 'Delivered';
 
 export interface Order {
   id: string;
@@ -19,6 +19,7 @@ export interface Order {
   includeSmallChops: boolean;
   customerName: string;
   customerPhone?: string;
+  customerRoomNumber?: string;
   // Cake specific
   cakeSize?: number;
   cakeLayers?: number;
@@ -39,6 +40,7 @@ export interface Order {
   deliveryType: DeliveryType;
   deliveryDate: string;
   specialRequirements: string;
+  notes: string;
   createdAt: string;
   updatedAt: string;
 }
