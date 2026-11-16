@@ -41,6 +41,10 @@ interface Order {
   cakeQuantity?: number;
   includeSmallChops?: boolean;
   smallChopsQuantity?: number;
+  includeCakeLoafs?: boolean;
+  cakeLoafsQuantity?: number;
+  includeCupcakes?: boolean;
+  cupcakesQuantity?: number;
   customerName: string;
   customerRoomNumber?: string;
   deliveryType?: string;
@@ -261,12 +265,7 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                   const dateA = new Date(a.createdAt || 0).getTime();
                   const dateB = new Date(b.createdAt || 0).getTime();
                   return dateB - dateA;
-                }).map((order) => {
-                  // Calculate breakdown for display
-                  const cakeComm = order.includeCake ? 1000 * (order.cakeQuantity || 1) : 0;
-                  const scComm = (order.commission || 0) - cakeComm - (order.deliveryType !== 'Pickup' ? 500 : 0); // Rough estimate for display
-                  
-                  return (
+                }).map((order) => (
                     <div key={order.id} className="p-5 bg-white dark:bg-slate-800 border border-subtle rounded-[24px] space-y-3 group hover:border-blue-200 dark:hover:border-pink-500 transition-all shadow-sm">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -281,12 +280,22 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                           <div className="flex flex-wrap gap-2 mb-2">
                             {order.includeCake && (
                               <span className="flex items-center text-[9px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                                Cake ({order.cakeQuantity}x)
+                                Cake ({order.cakeQuantity || 1}x)
                               </span>
                             )}
                             {order.includeSmallChops && (
                               <span className="flex items-center text-[9px] font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/30 px-2 py-0.5 rounded-full">
-                                Small Chops ({order.smallChopsQuantity}x)
+                                Small Chops ({order.smallChopsQuantity || 1}x)
+                              </span>
+                            )}
+                            {order.includeCakeLoafs && (
+                              <span className="flex items-center text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+                                Cake Loafs ({order.cakeLoafsQuantity || 1}x)
+                              </span>
+                            )}
+                            {order.includeCupcakes && (
+                              <span className="flex items-center text-[9px] font-bold text-pink-600 bg-pink-50 dark:bg-pink-900/30 px-2 py-0.5 rounded-full">
+                                Cupcakes ({order.cupcakesQuantity || 1}x)
                               </span>
                             )}
                           </div>
@@ -305,8 +314,7 @@ export default function RepSalaryModal({ rep, orders, onClose }: RepSalaryModalP
                         </div>
                       </div>
                     </div>
-                  );
-                }) : (
+                )) : (
                   <div className="flex flex-col items-center justify-center py-20 bg-gray-50 dark:bg-slate-800/30 rounded-[32px] border border-dashed border-subtle">
                     <p className="text-gray-400 text-xs uppercase tracking-[0.2em] font-black opacity-50">No activity recorded</p>
                   </div>

@@ -3,7 +3,7 @@ import { Plus, Send, CheckCircle, Trash2, Clock, AlertCircle, MapPin, Package, C
 import { formatCurrency, cn } from '../lib/utils';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { useData, Order, Rep, FrostingType, DeliveryType, PaymentStatus, OrderStatus } from './DataProvider';
-import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, CAKE_FLAVORS, SMALL_CHOPS_PRICES, DELIVERY_COSTS } from '../lib/constants';
+import { CAKE_PRICES, CAKE_SIZES, CAKE_LAYERS, FROSTING_TYPES, DELIVERY_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, CAKE_FLAVORS, SMALL_CHOPS_PRICES, DELIVERY_COSTS, TREATS_PRICES } from '../lib/constants';
 
 import { BowIcon } from './icons/BowIcon';
 
@@ -50,6 +50,11 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     // Small Chops
     packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
     smallChopsQuantity: 1,
+    // Bakery Treats
+    includeCakeLoafs: false,
+    cakeLoafsQuantity: 1,
+    includeCupcakes: false,
+    cupcakesQuantity: 1,
     
     deliveryType: 'Pickup' as DeliveryType,
     deliveryDate: format(new Date(), 'yyyy-MM-dd'),
@@ -73,10 +78,34 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
     if (formData.includeSmallChops) {
       smallChopsPrice = (SMALL_CHOPS_PRICES[formData.packageType]?.price || 0) * formData.smallChopsQuantity;
     }
+
+    let cakeLoafsPrice = 0;
+    if (formData.includeCakeLoafs) {
+      cakeLoafsPrice = TREATS_PRICES.cakeLoafs.price * formData.cakeLoafsQuantity;
+    }
+
+    let cupcakesPrice = 0;
+    if (formData.includeCupcakes) {
+      cupcakesPrice = TREATS_PRICES.cupcakes.price * formData.cupcakesQuantity;
+    }
     
     const delivery = DELIVERY_COSTS[formData.deliveryType] || 0;
-    return cakePrice + smallChopsPrice + delivery;
-  }, [formData.includeCake, formData.includeSmallChops, formData.cakeSize, formData.cakeLayers, formData.frostingType, formData.cakeQuantity, formData.packageType, formData.smallChopsQuantity, formData.deliveryType]);
+    return cakePrice + smallChopsPrice + cakeLoafsPrice + cupcakesPrice + delivery;
+  }, [
+    formData.includeCake,
+    formData.includeSmallChops,
+    formData.includeCakeLoafs,
+    formData.includeCupcakes,
+    formData.cakeSize,
+    formData.cakeLayers,
+    formData.frostingType,
+    formData.cakeQuantity,
+    formData.packageType,
+    formData.smallChopsQuantity,
+    formData.cakeLoafsQuantity,
+    formData.cupcakesQuantity,
+    formData.deliveryType
+  ]);
 
   const ordersToday = useMemo(() => {
     const today = new Date();
@@ -108,6 +137,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
   const handleAddOrder = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.repId || !formData.customerName) return;
+    if (!formData.includeCake && !formData.includeSmallChops && !formData.includeCakeLoafs && !formData.includeCupcakes) return;
 
     addOrder({
       ...formData,
@@ -135,6 +165,10 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
       inspirationImage: '',
       packageType: Object.keys(SMALL_CHOPS_PRICES)[0],
       smallChopsQuantity: 1,
+      includeCakeLoafs: false,
+      cakeLoafsQuantity: 1,
+      includeCupcakes: false,
+      cupcakesQuantity: 1,
       deliveryType: 'Pickup',
       deliveryDate: format(new Date(), 'yyyy-MM-dd'),
       paymentStatus: 'Pending',
@@ -211,12 +245,12 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
           {/* Product Selection */}
           <div className="flex justify-center flex-col items-center space-y-4">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Select Products Included</p>
-            <div className="flex p-2 bg-gray-100 dark:bg-slate-800 rounded-3xl w-full max-w-md">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-gray-100 dark:bg-slate-800 rounded-3xl w-full max-w-2xl">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, includeCake: !formData.includeCake })}
                 className={cn(
-                  "flex-1 py-3 px-6 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.2em]",
+                  "py-3 px-4 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.15em]",
                   formData.includeCake ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xl" : "text-gray-400 hover:text-gray-600"
                 )}
               >
@@ -226,11 +260,31 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                 type="button"
                 onClick={() => setFormData({ ...formData, includeSmallChops: !formData.includeSmallChops })}
                 className={cn(
-                  "flex-1 py-3 px-6 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.2em]",
+                  "py-3 px-4 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.15em]",
                   formData.includeSmallChops ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xl" : "text-gray-400 hover:text-gray-600"
                 )}
               >
                 Small Chops
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, includeCakeLoafs: !formData.includeCakeLoafs })}
+                className={cn(
+                  "py-3 px-4 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.15em]",
+                  formData.includeCakeLoafs ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xl" : "text-gray-400 hover:text-gray-600"
+                )}
+              >
+                Cake Loafs
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, includeCupcakes: !formData.includeCupcakes })}
+                className={cn(
+                  "py-3 px-4 text-xs font-black rounded-2xl capitalize transition-all tracking-[0.15em]",
+                  formData.includeCupcakes ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-xl" : "text-gray-400 hover:text-gray-600"
+                )}
+              >
+                Cupcakes
               </button>
             </div>
           </div>
@@ -293,7 +347,11 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     value={formData.deliveryType}
                     onChange={e => setFormData({ ...formData, deliveryType: e.target.value as DeliveryType })}
                   >
-                    {DELIVERY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    {DELIVERY_TYPES.map(t => (
+                      <option key={t} value={t}>
+                        {t} ({DELIVERY_COSTS[t] === 0 ? 'No Fee' : formatCurrency(DELIVERY_COSTS[t])})
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -457,7 +515,87 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                 </div>
               )}
 
-              {!formData.includeCake && !formData.includeSmallChops && (
+              {formData.includeCakeLoafs && (
+                <div className={cn("space-y-4 animate-in slide-in-from-right duration-300", (formData.includeCake || formData.includeSmallChops) && "pt-8 border-t border-subtle mt-8")}>
+                  <h3 className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-[0.3em] flex items-center space-x-3">
+                    <Cake size={18} />
+                    <span>Cake Loafs Configurator</span>
+                  </h3>
+                  <div className="p-5 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-black text-gray-900 dark:text-white text-base">Cake Loafs</p>
+                      <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
+                        {formatCurrency(TREATS_PRICES.cakeLoafs.price)} each • {formatCurrency(TREATS_PRICES.cakeLoafs.commission)} rep commission
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, cakeLoafsQuantity: Math.max(1, formData.cakeLoafsQuantity - 1) })}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-subtle font-black text-lg text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-20 p-2.5 text-center bg-white dark:bg-slate-800 border border-subtle rounded-xl font-black text-sm dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                        value={formData.cakeLoafsQuantity}
+                        onChange={e => setFormData({ ...formData, cakeLoafsQuantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, cakeLoafsQuantity: formData.cakeLoafsQuantity + 1 })}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-subtle font-black text-lg text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {formData.includeCupcakes && (
+                <div className={cn("space-y-4 animate-in slide-in-from-right duration-300", (formData.includeCake || formData.includeSmallChops || formData.includeCakeLoafs) && "pt-8 border-t border-subtle mt-8")}>
+                  <h3 className="text-xs font-black text-pink-600 dark:text-pink-400 uppercase tracking-[0.3em] flex items-center space-x-3">
+                    <Sparkles size={18} />
+                    <span>Cupcakes Configurator</span>
+                  </h3>
+                  <div className="p-5 bg-pink-50/50 dark:bg-pink-900/10 border border-pink-100 dark:border-pink-800/30 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-black text-gray-900 dark:text-white text-base">Cupcakes</p>
+                      <p className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1">
+                        {formatCurrency(TREATS_PRICES.cupcakes.price)} each • {formatCurrency(TREATS_PRICES.cupcakes.commission)} rep commission
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, cupcakesQuantity: Math.max(1, formData.cupcakesQuantity - 1) })}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-subtle font-black text-lg text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-20 p-2.5 text-center bg-white dark:bg-slate-800 border border-subtle rounded-xl font-black text-sm dark:text-white outline-none focus:ring-2 focus:ring-pink-500"
+                        value={formData.cupcakesQuantity}
+                        onChange={e => setFormData({ ...formData, cupcakesQuantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, cupcakesQuantity: formData.cupcakesQuantity + 1 })}
+                        className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-subtle font-black text-lg text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!formData.includeCake && !formData.includeSmallChops && !formData.includeCakeLoafs && !formData.includeCupcakes && (
                 <div className="h-full flex items-center justify-center p-10 bg-gray-50 dark:bg-slate-800/50 rounded-[40px] border-2 border-dashed border-subtle">
                   <p className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Please select at least one product type to configure</p>
                 </div>
@@ -608,14 +746,18 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     <div className="flex items-start space-x-6">
                       <div className={cn(
                         "w-20 h-20 rounded-[32px] flex items-center justify-center shrink-0 shadow-lg",
-                        order.includeCake ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600" : "bg-orange-50 dark:bg-orange-900/30 text-orange-600"
+                        order.includeCake ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600" :
+                        order.includeSmallChops ? "bg-orange-50 dark:bg-orange-900/30 text-orange-600" :
+                        order.includeCakeLoafs ? "bg-amber-50 dark:bg-amber-900/30 text-amber-600" :
+                        "bg-pink-50 dark:bg-pink-900/30 text-pink-600"
                       )}>
                         {order.inspirationImage ? (
                           <img src={order.inspirationImage} className="h-full w-full object-cover rounded-[32px]" alt="Inspo" />
                         ) : (
                           <div className="flex flex-col items-center justify-center space-y-1">
-                            {order.includeCake && <Cake size={order.includeSmallChops ? 24 : 40} />}
-                            {order.includeSmallChops && <Package size={order.includeCake ? 24 : 40} />}
+                            {(order.includeCake || order.includeCakeLoafs) && <Cake size={(order.includeSmallChops || order.includeCupcakes) ? 24 : 36} />}
+                            {order.includeSmallChops && <Package size={(order.includeCake || order.includeCakeLoafs || order.includeCupcakes) ? 24 : 36} />}
+                            {!order.includeCake && !order.includeCakeLoafs && !order.includeSmallChops && order.includeCupcakes && <Sparkles size={36} />}
                           </div>
                         )}
                       </div>
@@ -629,7 +771,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                               </span>
                             )}
                           </div>
-                            <div className="flex space-x-2">
+                            <div className="flex flex-wrap gap-2">
                               <span className={cn(
                                 "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
                                 order.paymentStatus === 'Paid' ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" :
@@ -646,6 +788,16 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                               {order.includeSmallChops && (
                                 <span className="bg-orange-100 dark:bg-orange-900 px-3 py-1 rounded-full text-[10px] font-black text-orange-700 dark:text-orange-300 uppercase tracking-widest">
                                   Small Chops
+                                </span>
+                              )}
+                              {order.includeCakeLoafs && (
+                                <span className="bg-amber-100 dark:bg-amber-900 px-3 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 uppercase tracking-widest">
+                                  Cake Loafs
+                                </span>
+                              )}
+                              {order.includeCupcakes && (
+                                <span className="bg-pink-100 dark:bg-pink-900 px-3 py-1 rounded-full text-[10px] font-black text-pink-700 dark:text-pink-300 uppercase tracking-widest">
+                                  Cupcakes
                                 </span>
                               )}
                             </div>
@@ -680,17 +832,30 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                     <div className="flex flex-wrap items-center gap-6 xl:justify-end">
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl min-w-[120px]">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Configuration</p>
-                        <p className="text-xs font-black text-main">
-                          {order.includeCake && `${order.cakeQuantity > 1 ? order.cakeQuantity + 'x ' : ''}${order.cakeSize}" ${order.flavors.join(', ') || 'No Flavor'}`}
-                          {order.includeCake && order.includeSmallChops && <span className="block border-t border-subtle my-1" />}
-                          {order.includeSmallChops && `${order.smallChopsQuantity > 1 ? order.smallChopsQuantity + 'x ' : ''}${order.packageType}`}
-                        </p>
+                        <div className="text-xs font-black text-main space-y-1">
+                          {order.includeCake && (
+                            <p>{`${order.cakeQuantity > 1 ? order.cakeQuantity + 'x ' : ''}${order.cakeSize}" ${order.flavors.join(', ') || 'No Flavor'}`}</p>
+                          )}
+                          {order.includeSmallChops && (
+                            <p>{`${order.smallChopsQuantity > 1 ? order.smallChopsQuantity + 'x ' : ''}${order.packageType}`}</p>
+                          )}
+                          {order.includeCakeLoafs && (
+                            <p>{`${order.cakeLoafsQuantity || 1}x Cake Loafs`}</p>
+                          )}
+                          {order.includeCupcakes && (
+                            <p>{`${order.cupcakesQuantity || 1}x Cupcakes`}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Price + Delivery</p>
                         <p className="text-sm font-black text-main">
                           {formatCurrency(order.amount)}
-                          {order.deliveryCost > 0 && <span className="ml-1 text-[8px] text-blue-500">(+ {formatCurrency(order.deliveryCost)})</span>}
+                          {order.deliveryCost > 0 ? (
+                            <span className="ml-1 text-[8px] text-blue-500">(+ {formatCurrency(order.deliveryCost)})</span>
+                          ) : (
+                            <span className="ml-1 text-[8px] text-gray-400">(No Delivery Fee)</span>
+                          )}
                         </p>
                       </div>
                       <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-3xl">

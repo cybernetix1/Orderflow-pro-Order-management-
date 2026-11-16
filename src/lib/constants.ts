@@ -32,8 +32,8 @@ export const CAKE_PRICES: Record<number, Record<number, { 'Buttercream': number;
 };
 
 export const SMALL_CHOPS_PRICES: Record<string, { price: number; commission: number }> = {
-  'Just Me Package': { price: 2550, commission: 400 },
-  'Just Me Chicken Package': { price: 2950, commission: 200 },
+  'Just Me Package': { price: 2000, commission: 300 },
+  'Just Me Chicken Package': { price: 3000, commission: 400 },
   'Yummy Combo 1': { price: 4500, commission: 475 },
   'Yummy Combo 2': { price: 5550, commission: 300 },
   'Deluxe Combo': { price: 7550, commission: 500 },
@@ -44,15 +44,21 @@ export const SMALL_CHOPS_PRICES: Record<string, { price: number; commission: num
   'VVIP Platter': { price: 55500, commission: 2750 },
 };
 
+export const TREATS_PRICES = {
+  cakeLoafs: { label: 'Cake Loafs', price: 1800, commission: 400 },
+  cupcakes: { label: 'Cupcakes', price: 1000, commission: 200 },
+} as const;
+
 export const CAKE_SIZES = [7, 8, 9, 10, 11, 12];
 export const CAKE_LAYERS = [1, 2, 3];
 export const FROSTING_TYPES = ['Buttercream', 'Whipped Cream'] as const;
-export const DELIVERY_TYPES = ['Room Delivery', 'Pickup', 'Delivery Pickup', 'Wrong Delivery'] as const;
+export const DELIVERY_TYPES = ['No Delivery', 'Room Delivery', 'Pickup', 'Delivery Pickup', 'Wrong Delivery'] as const;
 export const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'] as const;
 export const ORDER_STATUSES = ['Pending', 'In Progress', 'Completed', 'Delivered'] as const;
 export const CAKE_FLAVORS = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Carrot', 'Coconut', 'Marble'];
 
 export const DELIVERY_COSTS: Record<string, number> = {
+  'No Delivery': 0,
   'Pickup': 1000,
   'Room Delivery': 1500,
   'Delivery Pickup': 1000,
@@ -60,6 +66,7 @@ export const DELIVERY_COSTS: Record<string, number> = {
 };
 
 export const DELIVERY_COMMISSIONS: Record<string, number> = {
+  'No Delivery': 0,
   'Pickup': 500,
   'Room Delivery': 750,
   'Delivery Pickup': 500,

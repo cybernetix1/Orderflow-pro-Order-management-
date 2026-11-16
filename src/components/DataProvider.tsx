@@ -8,7 +8,7 @@ export interface Rep {
 }
 
 export type FrostingType = 'Buttercream' | 'Whipped Cream';
-export type DeliveryType = 'Room Delivery' | 'Pickup' | 'Delivery Pickup' | 'Wrong Delivery';
+export type DeliveryType = 'No Delivery' | 'Room Delivery' | 'Pickup' | 'Delivery Pickup' | 'Wrong Delivery';
 export type PaymentStatus = 'Pending' | 'Partial' | 'Paid';
 export type OrderStatus = 'Pending' | 'In Progress' | 'Completed' | 'Delivered';
 
@@ -31,6 +31,11 @@ export interface Order {
   // Small Chops specific
   packageType?: string;
   smallChopsQuantity: number;
+  // Bakery Treats specific
+  includeCakeLoafs?: boolean;
+  cakeLoafsQuantity?: number;
+  includeCupcakes?: boolean;
+  cupcakesQuantity?: number;
   
   amount: number;
   deliveryCost: number;
@@ -81,7 +86,7 @@ const STORAGE_KEY_ORDERS = 'cakeflow_orders_v2';
 const STORAGE_KEY_REMINDERS = 'cakeflow_reminders_v2';
 const STORAGE_KEY_THEME = 'cakeflow_theme_v2';
 
-import { SMALL_CHOPS_PRICES, DELIVERY_COMMISSIONS } from '../lib/constants';
+import { SMALL_CHOPS_PRICES, DELIVERY_COMMISSIONS, TREATS_PRICES } from '../lib/constants';
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [reps, setReps] = useState<Rep[]>(() => {
@@ -137,7 +142,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       commission += baseCommission * (order.smallChopsQuantity || 1);
     }
 
-    // 3. Delivery Commission
+    // 3. Cake Loafs Commission
+    if (order.includeCakeLoafs) {
+      commission += TREATS_PRICES.cakeLoafs.commission * (order.cakeLoafsQuantity || 1);
+    }
+
+    // 4. Cupcakes Commission
+    if (order.includeCupcakes) {
+      commission += TREATS_PRICES.cupcakes.commission * (order.cupcakesQuantity || 1);
+    }
+
+    // 5. Delivery Commission
     const deliveryCommission = DELIVERY_COMMISSIONS[order.deliveryType || 'Pickup'] || 0;
     commission += deliveryCommission;
 
