@@ -349,7 +349,7 @@ export default function OrderManagement({ orders, reps }: OrderManagementProps) 
                   >
                     {DELIVERY_TYPES.map(t => (
                       <option key={t} value={t}>
-                        {t} ({DELIVERY_COSTS[t] === 0 ? 'No Fee' : formatCurrency(DELIVERY_COSTS[t])})
+                        {t} ({t === 'No Delivery' ? 'No Fee' : formatCurrency(DELIVERY_COSTS[t])})
                       </option>
                     ))}
                   </select>

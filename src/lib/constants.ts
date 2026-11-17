@@ -52,22 +52,22 @@ export const TREATS_PRICES = {
 export const CAKE_SIZES = [7, 8, 9, 10, 11, 12];
 export const CAKE_LAYERS = [1, 2, 3];
 export const FROSTING_TYPES = ['Buttercream', 'Whipped Cream'] as const;
-export const DELIVERY_TYPES = ['No Delivery', 'Room Delivery', 'Pickup', 'Delivery Pickup', 'Wrong Delivery'] as const;
+export const DELIVERY_TYPES = ['No Delivery', 'Pickup', 'Room Delivery', 'Delivery Pickup', 'Wrong Delivery'] as const;
 export const PAYMENT_STATUSES = ['Pending', 'Partial', 'Paid'] as const;
 export const ORDER_STATUSES = ['Pending', 'In Progress', 'Completed', 'Delivered'] as const;
 export const CAKE_FLAVORS = ['Vanilla', 'Chocolate', 'Red Velvet', 'Strawberry', 'Carrot', 'Coconut', 'Marble'];
 
 export const DELIVERY_COSTS: Record<string, number> = {
   'No Delivery': 0,
-  'Pickup': 1000,
-  'Room Delivery': 1500,
+  'Pickup': 0,
+  'Room Delivery': 2000,
   'Delivery Pickup': 1000,
   'Wrong Delivery': 1500,
 };
 
 export const DELIVERY_COMMISSIONS: Record<string, number> = {
   'No Delivery': 0,
-  'Pickup': 500,
+  'Pickup': 0,
   'Room Delivery': 750,
   'Delivery Pickup': 500,
   'Wrong Delivery': 750,
